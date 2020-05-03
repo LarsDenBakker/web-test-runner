@@ -1,3 +1,4 @@
+import path from "path";
 import parse from "co-body";
 import { Readable } from "stream";
 import tapSpec from "tap-spec";
@@ -49,6 +50,7 @@ export function createReportingMiddleware({
         testsFailedToLoad.length !== 0 ||
         finishedTests.some((t) => t.results.some((r) => r.error))
       ) {
+        console.log("");
         process.exit(1);
       }
 
@@ -98,7 +100,6 @@ export function createReportingMiddleware({
       ctx.status = 200;
 
       const body = await parse.json(ctx);
-      console.log("");
       if (body.runningTests) {
         console.error(
           `\x1b[31m[web-test-runner] Unhandled error while running test file: ${body.testFile} \x1b[0m`
@@ -124,6 +125,16 @@ export function createReportingMiddleware({
       return;
     }
 
-    return next();
+    await next();
+
+    if (ctx.status === 404) {
+      const cleanUrl = ctx.url.split("?")[0].split("#")[0];
+      if (path.extname(cleanUrl)) {
+        console.error(
+          `\x1b[31m[web-test-runner] Could not find file: .${ctx.url}`
+        );
+        console.log("");
+      }
+    }
   };
 }
