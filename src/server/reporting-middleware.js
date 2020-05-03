@@ -25,6 +25,7 @@ function createTestReport(body) {
 export function createReportingMiddleware({
   onTestsRunEnded,
   testFiles,
+  debugInBrowser,
   watch,
 }) {
   const finishedTests = [];
@@ -42,10 +43,20 @@ export function createReportingMiddleware({
       finishedTests.push(body);
       logStream.push(createTestReport(body));
 
-      if (!watch && finishedTests.length === testFiles.length) {
+      if (
+        !watch &&
+        !debugInBrowser &&
+        finishedTests.length === testFiles.length
+      ) {
         logStream.push(null);
         onTestsRunEnded();
       }
+      return;
+    }
+
+    if (ctx.url === "/wtr/test-files") {
+      ctx.status = 200;
+      ctx.body = JSON.stringify(testFiles);
       return;
     }
 

@@ -42,6 +42,12 @@ Watch mode:
 wtr test/**/*.test.js --watch
 ```
 
+Debug in the browser:
+
+```bash
+wtr test/**/*.test.js --browser
+```
+
 ### Writing tests
 
 WTR exports just a `test` function which defines a test. Setting up test suites, before/after each, etc. is still in the works.

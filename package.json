@@ -7,6 +7,7 @@
   "scripts": {
     "test": "export LOCAL_TESTING=true && node src/server/cli.js demo/test/**/*.test.js",
     "test:watch": "export LOCAL_TESTING=true && node src/server/cli.js demo/test/**/*.test.js --watch",
+    "test:browser": "export LOCAL_TESTING=true && node src/server/cli.js demo/test/**/*.test.js --browser",
     "start": "es-dev-server --open demo/"
   },
   "bin": {

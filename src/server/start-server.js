@@ -11,7 +11,12 @@ const runnerJs = fs.readFileSync(
   "utf-8"
 );
 
-export async function startServer({ onTestsRunEnded, testFiles, watch }) {
+export async function startServer({
+  onTestsRunEnded,
+  debugInBrowser,
+  testFiles,
+  watch,
+}) {
   let server;
 
   const config = esDevServer.createConfig({
@@ -23,13 +28,14 @@ export async function startServer({ onTestsRunEnded, testFiles, watch }) {
           server.close();
           onTestsRunEnded();
         },
+        debugInBrowser,
         testFiles,
         watch,
       }),
     ],
     responseTransformers: [
       function serveTestHTML({ url }) {
-        if (url.startsWith("/?file")) {
+        if (url === "/" || url.startsWith("/?file")) {
           return {
             // TODO: Overwrite import for local testing
             body: process.env.LOCAL_TESTING

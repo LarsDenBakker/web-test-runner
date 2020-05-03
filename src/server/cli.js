@@ -10,6 +10,10 @@ const commandLineOptions = [
     defaultOption: true,
   },
   {
+    name: "browser",
+    type: Boolean,
+  },
+  {
     name: "watch",
     type: Boolean,
   },
@@ -27,5 +31,5 @@ const commandLineOptions = [
   }
   testFiles = testFiles.map((f) => (!f.startsWith(".") ? `./${f}` : f));
 
-  runTests({ testFiles, watch: !!args.watch });
+  runTests({ testFiles, debugInBrowser: args.browser, watch: !!args.watch });
 })();
