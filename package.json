@@ -10,6 +10,7 @@
     "test:pass": "export LOCAL_TESTING=true && node src/server/cli.js demo/test/c.test.js",
     "test:watch": "export LOCAL_TESTING=true && node src/server/cli.js demo/test/**/*.test.js --watch",
     "test:browser": "export LOCAL_TESTING=true && node src/server/cli.js demo/test/**/*.test.js --browser",
+    "test:404-import": "export LOCAL_TESTING=true && node src/server/cli.js demo/test/404-import.test.js",
     "start": "es-dev-server --open demo/"
   },
   "bin": {

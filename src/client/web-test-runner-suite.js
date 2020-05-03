@@ -1,5 +1,7 @@
-let testFile;
+const params = new URLSearchParams(window.location.search);
+const testFile = params.get("file");
 const tests = [];
+let runningTests = false;
 
 function postJSON(url, body) {
   return fetch(url, {
@@ -12,16 +14,18 @@ function postJSON(url, body) {
 }
 
 window.addEventListener("error", ({ error }) => {
-  postJSON("/wtr/unhandled-error", {
+  postJSON("/wtr/error", {
     testFile,
+    runningTests,
     error: { stack: error.stack, message: error.message },
   });
 });
 
 window.addEventListener("unhandledrejection", (e) => {
   e.promise.catch((error) => {
-    postJSON("/wtr/unhandled-error", {
+    postJSON("/wtr/error", {
       testFile,
+      runningTests,
       error: { stack: error.stack, message: error.message },
     });
   });
@@ -31,8 +35,8 @@ export function test(name, testFn) {
   tests.push({ name, testFn });
 }
 
-export async function runTests(_testFile) {
-  testFile = _testFile;
+export async function runTests() {
+  runningTests = true;
   const results = [];
 
   for (const test of tests) {

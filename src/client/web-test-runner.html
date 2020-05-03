@@ -23,7 +23,7 @@
           });
 
           await import(testFile);
-          runTests(testFile);
+          runTests();
         } else {
           // choose which test to run
           const testFiles = await (await fetch("/wtr/test-files")).json();

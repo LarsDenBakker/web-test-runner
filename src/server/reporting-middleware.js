@@ -29,6 +29,7 @@ export function createReportingMiddleware({
   watch,
 }) {
   const finishedTests = [];
+  const testsFailedToLoad = [];
   const logStream = new Readable({
     read() {
       return true;
@@ -37,24 +38,30 @@ export function createReportingMiddleware({
   logStream.pipe(tapSpec()).pipe(process.stdout);
   logStream.push("TAP version 13\n");
 
+  function onFileFinished() {
+    if (
+      !watch &&
+      !debugInBrowser &&
+      finishedTests.length + testsFailedToLoad.length === testFiles.length
+    ) {
+      logStream.push(null);
+      if (
+        testsFailedToLoad.length !== 0 ||
+        finishedTests.some((t) => t.results.some((r) => r.error))
+      ) {
+        process.exit(1);
+      }
+
+      onTestsRunEnded();
+    }
+  }
+
   return async function reportingMiddleware(ctx, next) {
     if (ctx.url === "/wtr/run-tests-end") {
       const body = await parse.json(ctx);
       finishedTests.push(body);
       logStream.push(createTestReport(body));
-
-      if (
-        !watch &&
-        !debugInBrowser &&
-        finishedTests.length === testFiles.length
-      ) {
-        logStream.push(null);
-        if (finishedTests.some((t) => t.results.some((r) => r.error))) {
-          process.exit(1);
-        }
-
-        onTestsRunEnded();
-      }
+      onFileFinished();
       return;
     }
 
@@ -72,16 +79,48 @@ export function createReportingMiddleware({
       return;
     }
 
-    if (ctx.url === "/wtr/unhandled-error") {
+    if (ctx.url === "/wtr/load-test-failed") {
       ctx.status = 200;
 
       const body = await parse.json(ctx);
-      console.log(
-        `[web-test-runner] Test file ${body.testFile} threw an unhandled error`
+      console.log("");
+      console.error(
+        `[web-test-runner] Failed to load test file: ${body.testFile} \x1b[0m`
       );
       console.error(
-        body.error.stack.replace(new RegExp(serverAddress, "g"), ".")
+        `  ${body.error.stack.replace(new RegExp(serverAddress, "g"), ".")}`
       );
+      console.log("");
+      return;
+    }
+
+    if (ctx.url === "/wtr/error") {
+      ctx.status = 200;
+
+      const body = await parse.json(ctx);
+      console.log("");
+      if (body.runningTests) {
+        console.error(
+          `\x1b[31m[web-test-runner] Unhandled error while running test file: ${body.testFile} \x1b[0m`
+        );
+      } else {
+        console.error(
+          `\x1b[31m[web-test-runner] Error loading test file: ${body.testFile}. \x1b[0m`
+        );
+      }
+
+      console.error(
+        `\x1b[36m  ${body.error.stack.replace(
+          new RegExp(serverAddress, "g"),
+          "."
+        )}\x1b[0m`
+      );
+      console.log("");
+
+      if (!body.runningTests) {
+        testsFailedToLoad.push(body.testFile);
+        onFileFinished();
+      }
       return;
     }
 
