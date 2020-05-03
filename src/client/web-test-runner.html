@@ -1,0 +1,12 @@
+<html>
+  <body>
+    <script type="module">
+      (async () => {
+        const response = await (await fetch("/wtr/tests")).json();
+        for (const testPath of response.tests) {
+          import(testPath);
+        }
+      })();
+    </script>
+  </body>
+</html>

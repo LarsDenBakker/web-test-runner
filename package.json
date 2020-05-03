@@ -1,0 +1,31 @@
+{
+  "name": "web-test-runner",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node src/server/cli.js demo/test/**/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LarsDenBakker/web-test-runner.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/LarsDenBakker/web-test-runner/issues"
+  },
+  "homepage": "https://github.com/LarsDenBakker/web-test-runner#readme",
+  "devDependencies": {
+    "es-dev-server": "^1.47.0",
+    "puppeteer": "^3.0.2",
+    "ts-node": "^8.10.1",
+    "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "co-body": "^6.0.0",
+    "command-line-args": "^5.1.1",
+    "globby": "^11.0.0"
+  }
+}
