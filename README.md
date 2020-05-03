@@ -1,6 +1,6 @@
 # Web test runner
 
-> This project is very experimental.
+> This project is experimental.
 
 A test runner for the modern web.
 
@@ -16,9 +16,17 @@ A test runner for the modern web.
 - Configure browser environment (viewport, network etc.) from tests
 - Support for multiple browsers
 
+## Usage
+
+The project has not been published yet.
+
 ## Running the project locally
 
 This project is built with es modules, in the browser and in node. It has only been tested with node v14.
+
+`npm run start` runs the tests standalone
+`npm run test` does a single test run
+`npm run test:watch` runs tests in watch mode, reloading on changes
 
 ## Technologies
 
