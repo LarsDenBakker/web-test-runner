@@ -12,9 +12,10 @@ const runnerJs = fs.readFileSync(
 );
 const serverAddress = "http://localhost:8000";
 
-export async function startServer(onTestsRunEnded, testFiles) {
+export async function startServer(onTestsRunEnded, { testFiles, watch }) {
   let server;
   const config = esDevServer.createConfig({
+    watch,
     nodeResolve: true,
     middlewares: [
       function serveTestsMiddleware(ctx, next) {
@@ -60,8 +61,10 @@ export async function startServer(onTestsRunEnded, testFiles) {
           );
           console.log("");
 
-          onTestsRunEnded();
-          server.close();
+          if (!watch) {
+            onTestsRunEnded();
+            server.close();
+          }
           return;
         }
 

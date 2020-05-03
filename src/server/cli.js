@@ -8,6 +8,10 @@ const commandLineOptions = [
     type: String,
     defaultOption: true,
   },
+  {
+    name: "watch",
+    type: Boolean,
+  },
 ];
 
 (async () => {
@@ -21,5 +25,5 @@ const commandLineOptions = [
     throw new Error(`Could not find any test files with pattern ${args.files}`);
   }
 
-  runTests(testFiles);
+  runTests({ testFiles, watch: !!args.watch });
 })();
