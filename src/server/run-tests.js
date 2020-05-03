@@ -1,14 +1,14 @@
 import puppeteer from "puppeteer";
 import { startServer } from "./start-server.js";
 
-export async function runTests({ testFiles, watch }) {
+export async function runTests({ testFiles, clientPath, watch }) {
   let browser;
 
   const onTestsRunEnded = () => {
     browser.close();
   };
 
-  await startServer({ onTestsRunEnded, testFiles, watch });
+  await startServer({ onTestsRunEnded, testFiles, clientPath, watch });
 
   browser = await puppeteer.launch();
 

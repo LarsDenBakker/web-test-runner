@@ -1,8 +1,7 @@
 <html>
   <body>
     <script type="module">
-      // TODO: this should be a bare import when published
-      import { runTests } from "./src/client/web-test-runner.js";
+      import { runTests } from "web-test-runner";
 
       (async () => {
         const params = new URLSearchParams(window.location.search);

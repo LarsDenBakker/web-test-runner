@@ -31,7 +31,13 @@ export async function startServer({ onTestsRunEnded, testFiles, watch }) {
       function serveTestHTML({ url }) {
         if (url.startsWith("/?file")) {
           return {
-            body: runnerHtml,
+            // TODO: Overwrite import for local testing
+            body: process.env.LOCAL_TESTING
+              ? runnerHtml.replace(
+                  'import { runTests } from "web-test-runner";',
+                  'import { runTests } from "./src/client/web-test-runner.js";'
+                )
+              : runnerHtml,
           };
         }
       },

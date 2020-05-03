@@ -12,6 +12,12 @@ const commandLineOptions = [
     name: "watch",
     type: Boolean,
   },
+
+  // TODO: needed for local testing, should be removed
+  {
+    name: "client-path",
+    type: String,
+  },
 ];
 
 (async () => {
@@ -26,5 +32,5 @@ const commandLineOptions = [
   }
   testFiles = testFiles.map((f) => (!f.startsWith(".") ? `./${f}` : f));
 
-  runTests({ testFiles, watch: !!args.watch });
+  runTests({ testFiles, watch: !!args.watch, clientPath: args["client-path"] });
 })();

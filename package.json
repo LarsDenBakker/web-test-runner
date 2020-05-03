@@ -5,8 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "node src/server/cli.js demo/test/**/*.test.js",
-    "test:watch": "node src/server/cli.js demo/test/**/*.test.js --watch",
+    "test": "export LOCAL_TESTING=true && node src/server/cli.js demo/test/**/*.test.js",
+    "test:watch": "export LOCAL_TESTING=true && node src/server/cli.js demo/test/**/*.test.js --watch",
     "start": "es-dev-server --open demo/"
   },
   "repository": {
