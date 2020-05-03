@@ -119,7 +119,9 @@ export async function startServer(onTestsRunEnded, { testFiles, watch }) {
             );
             console.log("");
             console.log(
-              `[web-test-runner] Finished running ${total} tests with ${failed} failures in ${Math.round(
+              `[web-test-runner] Finished running ${
+                testFiles.length
+              } test files with ${total} tests and ${failed} failures in ${Math.round(
                 duration
               )} ms.`
             );
@@ -152,7 +154,7 @@ export async function startServer(onTestsRunEnded, { testFiles, watch }) {
     ],
   });
 
-  console.log("starting server");
+  console.log(`[web-test-runner] Running ${testFiles.length} tests files.`);
   server = (await esDevServer.startServer(config)).server;
 
   [("exit", "SIGINT")].forEach((event) => {

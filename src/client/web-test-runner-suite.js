@@ -1,3 +1,4 @@
+let testFile;
 const tests = [];
 
 function postJSON(url, body) {
@@ -10,8 +11,9 @@ function postJSON(url, body) {
   });
 }
 
-window.addEventListener("error", () => {
+window.addEventListener("error", ({ error }) => {
   postJSON("/wtr/unhandled-error", {
+    testFile,
     error: { stack: error.stack, message: error.message },
   });
 });
@@ -19,6 +21,7 @@ window.addEventListener("error", () => {
 window.addEventListener("unhandledrejection", (e) => {
   e.promise.catch((error) => {
     postJSON("/wtr/unhandled-error", {
+      testFile,
       error: { stack: error.stack, message: error.message },
     });
   });
@@ -28,7 +31,8 @@ export function test(name, testFn) {
   tests.push({ name, testFn });
 }
 
-export async function runTests(testFile) {
+export async function runTests(_testFile) {
+  testFile = _testFile;
   await postJSON("/wtr/run-tests-start", { testFile, testCount: tests.length });
   let failedCount = 0;
   const totalStart = performance.now();
@@ -53,6 +57,9 @@ export async function runTests(testFile) {
       failedCount += 1;
     }
   }
+
+  // wait to catch any async errors
+  await new Promise((r) => setTimeout(r, 100));
 
   await postJSON("/wtr/run-tests-end", {
     testFile,

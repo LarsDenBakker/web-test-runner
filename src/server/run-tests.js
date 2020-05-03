@@ -6,7 +6,6 @@ export async function runTests({ testFiles, watch }) {
 
   await startServer(
     () => {
-      console.log("closingbrowser");
       browser.close();
     },
     { testFiles, watch }
