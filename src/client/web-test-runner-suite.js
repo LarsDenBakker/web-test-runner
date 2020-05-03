@@ -10,13 +10,26 @@ function postJSON(url, body) {
   });
 }
 
+window.addEventListener("error", () => {
+  postJSON("/wtr/unhandled-error", {
+    error: { stack: error.stack, message: error.message },
+  });
+});
+
+window.addEventListener("unhandledrejection", (e) => {
+  e.promise.catch((error) => {
+    postJSON("/wtr/unhandled-error", {
+      error: { stack: error.stack, message: error.message },
+    });
+  });
+});
+
 export function test(name, testFn) {
   tests.push({ name, testFn });
 }
 
-export async function runTests() {
-  console.log("runTests");
-  await postJSON("/wtr/run-tests-start", { testCount: tests.length });
+export async function runTests(testFile) {
+  await postJSON("/wtr/run-tests-start", { testFile, testCount: tests.length });
   let failedCount = 0;
   const totalStart = performance.now();
 
@@ -27,11 +40,13 @@ export async function runTests() {
 
       await test.testFn();
       await postJSON("/wtr/test-end", {
+        testFile,
         name,
         duration: performance.now() - testStart,
       });
     } catch (error) {
       await postJSON("/wtr/test-end", {
+        testFile,
         name,
         error: { stack: error.stack, message: error.message },
       });
@@ -40,6 +55,7 @@ export async function runTests() {
   }
 
   await postJSON("/wtr/run-tests-end", {
+    testFile,
     name,
     testCount: tests.length,
     failedCount,

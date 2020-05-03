@@ -5,17 +5,15 @@
       import { runTests } from "./src/client/web-test-runner.js";
 
       (async () => {
-        const imports = [];
-        const response = await (await fetch("/wtr/tests")).json();
-
-        for (const testPath of response.tests) {
-          // TODO: log import error
-          console.log("import", testPath);
-          imports.push(import(testPath));
+        const params = new URLSearchParams(window.location.search);
+        const testFile = params.get("file");
+        if (!testFile) {
+          throw new Error("Missing file search parameter");
         }
 
-        await Promise.all(imports);
-        runTests();
+        await import(testFile);
+
+        runTests(testFile);
       })();
     </script>
   </body>

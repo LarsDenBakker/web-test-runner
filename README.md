@@ -6,12 +6,15 @@ A test runner for the modern web.
 
 ## Project goals
 
-- Run tests in a real browsers
-- Optionally headless with watch mode
-- Based on es-modules, no globals or test runner "frameworks"
-- Single tests can be run standalone without requiring special commands
+- Run tests in a real browser
+- View/debug tests in the browser
+- Run tests headless from terminal
+- Support for test isolation
+- Based on es-modules, no global variables
+- Single tests can be run standalone without requiring special commands (for example copy them to an online code editor)
 - Can use any assertion library
 - Configure browser environment (viewport, network etc.) from tests
+- Support for multiple browsers
 
 ## Running the project locally
 

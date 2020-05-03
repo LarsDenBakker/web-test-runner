@@ -13,14 +13,16 @@ const runnerJs = fs.readFileSync(
 const serverAddress = "http://localhost:8000";
 
 export async function startServer(onTestsRunEnded, { testFiles, watch }) {
+  const finishedTests = [];
   let server;
+
   const config = esDevServer.createConfig({
     watch,
     nodeResolve: true,
     middlewares: [
       function serveTestsMiddleware(ctx, next) {
         if (ctx.url === "/wtr/tests") {
-          ctx.body = { tests: testFiles.map((file) => `./${file}`) };
+          ctx.body = { tests: testFiles };
           ctx.status = 200;
           return;
         }
@@ -29,39 +31,99 @@ export async function startServer(onTestsRunEnded, { testFiles, watch }) {
       },
       async function logMiddleware(ctx, next) {
         if (ctx.url === "/wtr/run-tests-start") {
-          const body = await parse.json(ctx);
-          console.log(`[web-test-runner] Running ${body.testCount} tests...`);
+          ctx.status = 200;
+          // const body = await parse.json(ctx);
+          // console.log(`[web-test-runner] Running ${body.testCount} tests...`);
           return;
         }
+
+        if (ctx.url.startsWith("/wtr/log")) {
+          ctx.status = 200;
+          console.log(`[web-test-runner] ${ctx.url.replace("/wtr/log/", "")}`);
+          return;
+        }
+
+        if (ctx.url === "/wtr/unhandled-error") {
+          ctx.status = 200;
+
+          const body = await parse.json(ctx);
+          console.log(
+            `[web-test-runner] Test file ${body.testFile} threw an unhandled error`
+          );
+          console.error(body.error.message);
+          console.error(
+            body.error.stack.replace(new RegExp(serverAddress, "g"), ".")
+          );
+          return;
+        }
+
         if (ctx.url === "/wtr/test-end") {
+          ctx.status = 200;
           const body = await parse.json(ctx);
           console.log("");
           if (body.error) {
-            console.error(`[web-test-runner] Test ${body.name} failed: `);
+            console.error(
+              `[web-test-runner] Test ${body.testFile} ${body.name} failed: `
+            );
             console.error(body.error.message);
             console.error(
               body.error.stack.replace(new RegExp(serverAddress, "g"), ".")
             );
           } else {
             console.log(
-              `[web-test-runner] Test ${body.name} finished in ${Math.round(
-                body.duration
-              )} ms.`
+              `[web-test-runner] Test ${body.testFile} ${
+                body.name
+              } finished in ${Math.round(body.duration)} ms.`
             );
           }
           return;
         }
-        if (ctx.url === "/wtr/run-tests-end") {
+
+        if (ctx.url === "/wtr/test-end") {
           const body = await parse.json(ctx);
           console.log("");
-          console.log(
-            `[web-test-runner] Finished running ${body.testCount} tests with ${
-              body.failedCount
-            } failures in ${Math.round(body.duration)} ms.`
-          );
-          console.log("");
+          if (body.error) {
+            console.error(
+              `[web-test-runner] Test ${body.testFile} ${body.name} failed: `
+            );
+            console.error(body.error.message);
+            console.error(
+              body.error.stack.replace(new RegExp(serverAddress, "g"), ".")
+            );
+          } else {
+            console.log(
+              `[web-test-runner] Test ${body.testFile} ${
+                body.name
+              } finished in ${Math.round(body.duration)} ms.`
+            );
+          }
+          return;
+        }
 
-          if (!watch) {
+        if (!watch && ctx.url === "/wtr/run-tests-end") {
+          const body = await parse.json(ctx);
+          finishedTests.push(body);
+
+          if (finishedTests.length === testFiles.length) {
+            const total = finishedTests.reduce(
+              (acc, t) => acc + t.testCount,
+              0
+            );
+            const failed = finishedTests.reduce(
+              (acc, t) => acc + t.testCount,
+              0
+            );
+            const duration = finishedTests.reduce(
+              (acc, t) => acc + t.duration,
+              0
+            );
+            console.log("");
+            console.log(
+              `[web-test-runner] Finished running ${total} tests with ${failed} failures in ${Math.round(
+                duration
+              )} ms.`
+            );
+            console.log("");
             onTestsRunEnded();
             server.close();
           }
@@ -73,7 +135,7 @@ export async function startServer(onTestsRunEnded, { testFiles, watch }) {
     ],
     responseTransformers: [
       function serveTestHTML({ url }) {
-        if (url === "/" || url === "/index.html") {
+        if (url.startsWith("/?file")) {
           return {
             body: runnerHtml,
           };

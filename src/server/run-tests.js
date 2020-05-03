@@ -6,12 +6,17 @@ export async function runTests({ testFiles, watch }) {
 
   await startServer(
     () => {
+      console.log("closingbrowser");
       browser.close();
     },
     { testFiles, watch }
   );
 
   browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  await page.goto("http://localhost:8000/");
+
+  for (const testFile of testFiles) {
+    browser.newPage().then((page) => {
+      page.goto(`http://localhost:8000/?file=${testFile}`);
+    });
+  }
 }

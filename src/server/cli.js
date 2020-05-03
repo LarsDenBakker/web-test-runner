@@ -20,10 +20,11 @@ const commandLineOptions = [
     throw new Error("You need to specify which tests to run.");
   }
 
-  const testFiles = await globby(args.files);
+  let testFiles = await globby(args.files);
   if (!testFiles || testFiles.length === 0) {
     throw new Error(`Could not find any test files with pattern ${args.files}`);
   }
+  testFiles = testFiles.map((f) => (!f.startsWith(".") ? `./${f}` : f));
 
   runTests({ testFiles, watch: !!args.watch });
 })();
