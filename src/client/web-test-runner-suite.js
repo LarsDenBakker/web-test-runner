@@ -33,29 +33,18 @@ export function test(name, testFn) {
 
 export async function runTests(_testFile) {
   testFile = _testFile;
-  await postJSON("/wtr/run-tests-start", { testFile, testCount: tests.length });
-  let failedCount = 0;
-  const totalStart = performance.now();
+  const results = [];
 
   for (const test of tests) {
     const { name } = test;
+    const testStart = performance.now();
+    let error;
     try {
-      const testStart = performance.now();
-
       await test.testFn();
-      await postJSON("/wtr/test-end", {
-        testFile,
-        name,
-        duration: performance.now() - testStart,
-      });
-    } catch (error) {
-      await postJSON("/wtr/test-end", {
-        testFile,
-        name,
-        error: { stack: error.stack, message: error.message },
-      });
-      failedCount += 1;
+    } catch (e) {
+      error = { stack: e.stack, message: e.message };
     }
+    results.push({ name, error, duration: performance.now() - testStart });
   }
 
   // wait to catch any async errors
@@ -63,9 +52,6 @@ export async function runTests(_testFile) {
 
   await postJSON("/wtr/run-tests-end", {
     testFile,
-    name,
-    testCount: tests.length,
-    failedCount,
-    duration: performance.now() - totalStart,
+    results,
   });
 }

@@ -22,6 +22,7 @@
   "devDependencies": {
     "es-dev-server": "^1.47.0",
     "puppeteer": "^3.0.2",
+    "tap-spec": "^5.0.0",
     "ts-node": "^8.10.1",
     "typescript": "^3.8.3"
   },
