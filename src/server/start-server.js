@@ -43,7 +43,7 @@ export async function startServer({ onTestsRunEnded, testFiles, watch }) {
       },
       function serveTestRunner({ url }) {
         // TODO: We should do this with an import map / custom resolve
-        if (url === "/src/client/web-test-runner.js") {
+        if (url.endsWith(`/src/client/web-test-runner.js`)) {
           return {
             body: runnerJs,
           };
