@@ -1,6 +1,6 @@
 # Web test runner
 
-> This project is experimental.
+> This project is very experimental, there are a lot of missing features and probably bugs.
 
 A test runner for the modern web.
 
@@ -18,7 +18,72 @@ A test runner for the modern web.
 
 ## Usage
 
-The project has not been published yet.
+> WTR is currently only published as es module. You need to use node v13 or higher, or v12 with the `--experimental-modules` flag.
+
+### Installation
+
+See [wtr-example](https://github.com/LarsDenBakker/wtr-example) for an example how WTR can be used.
+
+```bash
+npm i --save-dev web-test-runner
+```
+
+### Running tests
+
+Single run:
+
+```bash
+wtr test/**/*.test.js
+```
+
+Watch mode:
+
+```bash
+wtr test/**/*.test.js --watch
+```
+
+### Writing tests
+
+WTR exports just a `test` function which defined a test. Setting up test suites, before/after each etc. is still in the works.
+
+```js
+import { test } from "web-test-runner";
+
+test("foo is bar", () => {
+  if ("foo" !== "bar") {
+    throw new Error("foo does not equal bar");
+  }
+});
+```
+
+### Writing assertions
+
+WTR does not have any built in assertion library yet. We are still investigating what we want to do here. You can use any assertion library, as long as it works in the browser. For example try this variant of chai shipped as es module:
+
+```js
+import { test } from "web-test-runner";
+import { expect } from "@bundled-es-modules/chai";
+
+test("foo is bar", () => {
+  expect(foo).to.equal("bar");
+});
+```
+
+### Creating HTML test fixture
+
+To scaffold a HTML test fixture you can use the `@open-wc/testing-helpers` library.
+
+```js
+import { test } from "web-test-runner";
+import { fixture, html } from "@open-wc/testing-helpers";
+import { expect } from "@bundled-es-modules/chai";
+import "../my-element.js";
+
+test("my-element should render properly", async () => {
+  const element = await fixture(html`<my-element></my-element>`);
+  expect(element.localName).to.equal("my-element");
+});
+```
 
 ## Running the project locally
 
