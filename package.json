@@ -1,6 +1,6 @@
 {
   "name": "web-test-runner",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "main": "index.js",
   "type": "module",
@@ -8,6 +8,9 @@
     "test": "export LOCAL_TESTING=true && node src/server/cli.js demo/test/**/*.test.js",
     "test:watch": "export LOCAL_TESTING=true && node src/server/cli.js demo/test/**/*.test.js --watch",
     "start": "es-dev-server --open demo/"
+  },
+  "bin": {
+    "wtr": "./src/server/cli.js"
   },
   "repository": {
     "type": "git",
@@ -19,14 +22,10 @@
     "url": "https://github.com/LarsDenBakker/web-test-runner/issues"
   },
   "homepage": "https://github.com/LarsDenBakker/web-test-runner#readme",
-  "devDependencies": {
+  "dependencies": {
     "es-dev-server": "^1.47.0",
     "puppeteer": "^3.0.2",
     "tap-spec": "^5.0.0",
-    "ts-node": "^8.10.1",
-    "typescript": "^3.8.3"
-  },
-  "dependencies": {
     "co-body": "^6.0.0",
     "command-line-args": "^5.1.1",
     "globby": "^11.0.0"

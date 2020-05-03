@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import globby from "globby";
 import commandLineArgs from "command-line-args";
 import { runTests } from "./run-tests.js";
