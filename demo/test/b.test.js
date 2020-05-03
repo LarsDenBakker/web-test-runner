@@ -9,3 +9,9 @@ test("true equals true", () => {
     throw new Error("true does not equal true");
   }
 });
+
+test("foo", () => {
+  setTimeout(() => {
+    throw new Error("this error is thrown outside test");
+  });
+});

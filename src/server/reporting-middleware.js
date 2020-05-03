@@ -49,6 +49,10 @@ export function createReportingMiddleware({
         finishedTests.length === testFiles.length
       ) {
         logStream.push(null);
+        if (finishedTests.some((t) => t.results.some((r) => r.error))) {
+          process.exit(1);
+        }
+
         onTestsRunEnded();
       }
       return;
