@@ -5,7 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "node src/server/cli.js demo/test/**/*.test.js"
+    "test": "node src/server/cli.js demo/test/**/*.test.js",
+    "start": "es-dev-server --open demo/"
   },
   "repository": {
     "type": "git",

@@ -1,10 +1,13 @@
 import fs from "fs";
-import puppeteer from "puppeteer";
 import parse from "co-body";
 import esDevServer from "es-dev-server";
 
 const runnerHtml = fs.readFileSync(
   new URL("../client/web-test-runner.html", import.meta.url),
+  "utf-8"
+);
+const runnerJs = fs.readFileSync(
+  new URL("../client/web-test-runner-suite.js", import.meta.url),
   "utf-8"
 );
 const serverAddress = "http://localhost:8000";
@@ -70,6 +73,14 @@ export async function startServer(onTestsRunEnded, testFiles) {
         if (url === "/" || url === "/index.html") {
           return {
             body: runnerHtml,
+          };
+        }
+      },
+      function serveTestRunner({ url }) {
+        // TODO: We should do this with an import map / custom resolve
+        if (url === "/src/client/web-test-runner.js") {
+          return {
+            body: runnerJs,
           };
         }
       },

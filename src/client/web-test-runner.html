@@ -1,11 +1,21 @@
 <html>
   <body>
     <script type="module">
+      // TODO: this should be a bare import when published
+      import { runTests } from "./src/client/web-test-runner.js";
+
       (async () => {
+        const imports = [];
         const response = await (await fetch("/wtr/tests")).json();
+
         for (const testPath of response.tests) {
-          import(testPath);
+          // TODO: log import error
+          console.log("import", testPath);
+          imports.push(import(testPath));
         }
+
+        await Promise.all(imports);
+        runTests();
       })();
     </script>
   </body>
