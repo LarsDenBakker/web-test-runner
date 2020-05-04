@@ -1,7 +1,7 @@
-import { test } from "../../src/client/web-test-runner.js";
+import { test } from '../../dist/runtime/web-test-runner.js';
 
-test("foo is bar", () => {
-  if ("foo" !== "bar") {
-    throw new Error("foo does not equal bar");
+test('foo is bar', () => {
+  if ('foo' !== 'bar') {
+    throw new Error('foo does not equal bar');
   }
 });

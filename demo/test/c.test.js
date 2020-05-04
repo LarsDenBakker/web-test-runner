@@ -1,13 +1,13 @@
-import { test } from "../../src/client/web-test-runner.js";
+import { test } from '../../dist/runtime/web-test-runner.js';
 
-test("undefined is not a function", () => {
-  if (typeof undefined === "function") {
+test('undefined is not a function', () => {
+  if (typeof undefined === 'function') {
     throw new Error("This can't be right");
   }
 });
 
-test("true equals true", () => {
+test('true equals true', () => {
   if (true !== true) {
-    throw new Error("true does not equal true");
+    throw new Error('true does not equal true');
   }
 });
