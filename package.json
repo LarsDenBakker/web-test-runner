@@ -42,6 +42,7 @@
     "es-dev-server": "^1.47.0",
     "koa": "^2.11.0",
     "puppeteer": "^3.0.2",
+    "globby": "^11.0.0",
     "tap-spec": "^5.0.0"
   },
   "devDependencies": {
@@ -49,7 +50,6 @@
     "@types/command-line-args": "^5.0.0",
     "@types/globby": "^9.1.0",
     "@types/puppeteer": "^2.0.1",
-    "globby": "^11.0.0",
     "typescript": "^3.8.3"
   }
 }
