@@ -2,8 +2,7 @@
 import globby from 'globby';
 import { Readable } from 'stream';
 import { TestRunnerConfig } from './TestRunnerConfig.js';
-import { TestFileResult } from './TestFileResult.js';
-import { createTestReport } from './createTestReport.js';
+import { logger } from './logger.js';
 
 async function collectTestFiles(patterns: string | string[]) {
   const testFiles: string[] = [];
@@ -15,30 +14,45 @@ async function collectTestFiles(patterns: string | string[]) {
 }
 
 export async function runTests(config: TestRunnerConfig) {
+  const serverAddress = `${config.address}:${config.port}`;
   const testFiles = await collectTestFiles(config.files);
-  const testFileResults: TestFileResult[] = [];
 
-  console.log(`[web-test-runner] Running ${testFiles.length} tests files.`);
+  if (testFiles.length === 0) {
+    logger.error(`Could not find any files with pattern(s): ${config.files}`);
+    process.exit(1);
+  }
 
-  const reporter = new Readable({ read: () => true });
-  config.reporter(reporter);
-  reporter.push('TAP version 13\n');
+  if (config.testIsolation && config.debug && testFiles.length !== 1) {
+    logger.error('Cannot debug one than more test file when test isolation is enabled');
+    process.exit(1);
+  }
+
+  const finishedTestFiles: string[] = [];
+  let failed = false;
+
+  console.log(`[web-test-runner] Running ${testFiles.length} test files.`);
 
   await config.server.start(config, testFiles);
 
-  config.server.events.addListener('test-file-finished', async ({ result }) => {
-    testFileResults.push(result);
-    reporter.push(createTestReport(result, `${config.address}:${config.port}`));
+  config.server.events.addListener('browser-finished', async ({ result }) => {
+    finishedTestFiles.push(...result.testFiles);
+    if (!failed && !result.succeeded) {
+      failed = true;
+    }
+
+    for (const log of result.logs) {
+      const cleanLogs = log.map((l) =>
+        typeof l === 'string' ? l.replace(new RegExp(serverAddress, 'g'), '.') : l
+      );
+      console.log(...cleanLogs);
+    }
 
     const shouldExit =
-      !config.watch && !config.openBrowser && testFileResults.length === testFiles.length;
+      !config.watch && !config.debug && finishedTestFiles.length === testFiles.length;
 
     if (shouldExit) {
-      reporter.push(null);
       await config.browserRunner.stop();
       await config.server.stop();
-
-      const failed = testFileResults.some((t) => t.error || t.results.some((r) => r.error));
 
       if (failed) {
         console.log('');
@@ -48,11 +62,5 @@ export async function runTests(config: TestRunnerConfig) {
   });
 
   await config.browserRunner.start(config);
-  if (config.openBrowser) {
-    config.browserRunner.runTestsInBrowser();
-  } else {
-    for (const testFile of testFiles) {
-      config.browserRunner.runTest(testFile);
-    }
-  }
+  await config.browserRunner.runTests(testFiles);
 }

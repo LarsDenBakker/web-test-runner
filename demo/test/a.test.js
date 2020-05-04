@@ -1,7 +1,7 @@
-import { test } from '../../dist/core/runtime/web-test-runner.js';
+import { expect } from '@bundled-es-modules/chai';
 
-test('foo is bar', () => {
-  if ('foo' !== 'bar') {
-    throw new Error('foo does not equal bar');
-  }
+describe('test a', () => {
+  it('foo equals bar', () => {
+    expect('foo').to.equal('bar');
+  });
 });

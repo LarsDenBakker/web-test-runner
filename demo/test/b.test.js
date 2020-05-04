@@ -1,17 +1,17 @@
-import { test } from '../../dist/core/runtime/web-test-runner.js';
+import { expect } from '@bundled-es-modules/chai';
 
-test('undefined is a function', () => {
-  undefined();
-});
+describe('test b', () => {
+  // it('undefined is a function', () => {
+  //   expect(undefined).to.be.a('function');
+  // });
 
-test('true equals true', () => {
-  if (true !== true) {
-    throw new Error('true does not equal true');
-  }
-});
+  it('true equals true', () => {
+    expect(true).to.equal(true);
+  });
 
-test('foo', () => {
-  setTimeout(() => {
-    throw new Error('this error is thrown outside test');
+  it('throws error outside test', () => {
+    setTimeout(() => {
+      throw new Error('this error is thrown outside test');
+    });
   });
 });

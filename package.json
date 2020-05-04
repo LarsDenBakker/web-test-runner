@@ -5,7 +5,7 @@
   "main": "dist/core/runtime/web-test-runner.js",
   "type": "module",
   "scripts": {
-    "build": "tsc && cp src/core/runtime/web-test-runner.html dist/core/runtime/web-test-runner.html",
+    "build": "tsc",
     "test": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js",
     "test:fail": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/a.test.js",
     "test:pass": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/c.test.js",
@@ -13,7 +13,7 @@
     "test:browser": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js --browser",
     "test:404-import": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/404-import.test.js",
     "release": "npm run build && npm publish",
-    "start": "es-dev-server --open demo/"
+    "start": "es-dev-server --open demo/ --node-resolve"
   },
   "files": [
     "dist"
@@ -46,10 +46,13 @@
     "tap-spec": "^5.0.0"
   },
   "devDependencies": {
+    "@bundled-es-modules/chai": "^4.2.2",
     "@types/co-body": "^5.1.0",
     "@types/command-line-args": "^5.0.0",
     "@types/globby": "^9.1.0",
+    "@types/mocha": "^7.0.2",
     "@types/puppeteer": "^2.0.1",
+    "mocha": "^7.1.2",
     "typescript": "^3.8.3"
   }
 }

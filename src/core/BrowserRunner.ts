@@ -3,6 +3,5 @@ import { TestRunnerConfig } from './TestRunnerConfig.js';
 export interface BrowserRunner {
   start(config: TestRunnerConfig): Promise<void>;
   stop(): Promise<void>;
-  runTest(testPath: string): Promise<void>;
-  runTestsInBrowser(): Promise<void>;
+  runTests(testFiles: string[]): Promise<void>;
 }

@@ -1,13 +1,11 @@
-import { test } from '../../dist/core/runtime/web-test-runner.js';
+import { expect } from '@bundled-es-modules/chai';
 
-test('undefined is not a function', () => {
-  if (typeof undefined === 'function') {
-    throw new Error("This can't be right");
-  }
-});
+describe('test c', () => {
+  it('undefined is not a function', () => {
+    expect(undefined).to.not.be.a('function');
+  });
 
-test('true equals true', () => {
-  if (true !== true) {
-    throw new Error('true does not equal true');
-  }
+  it('true equals true', () => {
+    expect(true).to.equal(true);
+  });
 });

@@ -3,7 +3,6 @@ import commandLineArgs from 'command-line-args';
 import { runTests } from './runTests.js';
 import { createPuppeteerRunner } from '../implementations/puppeteer-launcher.js';
 import { createEsDevServer } from '../implementations/es-dev-server.js';
-import { specReporter } from '../implementations/specReporter.js';
 
 const commandLineOptions = [
   {
@@ -12,11 +11,15 @@ const commandLineOptions = [
     defaultOption: true,
   },
   {
-    name: 'browser',
+    name: 'debug',
     type: Boolean,
   },
   {
     name: 'watch',
+    type: Boolean,
+  },
+  {
+    name: 'test-isolation',
     type: Boolean,
   },
 ];
@@ -29,12 +32,13 @@ const commandLineOptions = [
 
   runTests({
     files: [args.files],
+    testRunnerImport: 'web-test-runner/dist/implementations/mocha.js',
     address: 'http://localhost',
     port: 9542,
     browserRunner: createPuppeteerRunner(),
     server: createEsDevServer(),
-    reporter: specReporter,
     watch: !!args.watch,
-    openBrowser: !!args.browser,
+    debug: !!args.debug,
+    testIsolation: !!args['test-isolation'],
   });
 })();

@@ -1,12 +1,9 @@
 import { EventEmitter } from 'events';
-import { TestFileResult } from './TestFileResult.js';
+import { BrowserResult } from './runtime.js';
 import { TestRunnerConfig } from './TestRunnerConfig.js';
 
 export interface ServerEvents extends EventEmitter {
-  addListener(
-    name: 'test-file-finished',
-    listener: (args: { result: TestFileResult }) => void
-  ): this;
+  addListener(name: 'browser-finished', listener: (args: { result: BrowserResult }) => void): this;
 }
 
 export interface Server {
