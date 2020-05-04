@@ -1,20 +1,20 @@
 # Web test runner
 
-> This project is very experimental, there are a lot of missing features and probably bugs.
+> This project is still experimental
 
 A test runner for the modern web.
 
 ## Project goals
 
-- Run tests in a real browser
-- View/debug tests in the browser
-- Run tests headless from terminal
-- Support for test isolation
-- Based on es-modules, no global variables
-- Single tests can be run standalone without requiring special commands (for example copy them to an online code editor)
-- Can use any assertion library
-- Configure browser environment (viewport, network, etc.) from tests
-- Support for multiple browsers
+The goal for this project is simple:
+
+1. Open a browser
+2. Import your test files (as es modules)
+3. Report back the results
+
+Besides that we try to create a good test authoring experience.
+
+We set you up with good defaults., but most parts are pluggable. You can bring your own browser launcher, web server, test framework or test reporter.
 
 ## Usage
 
@@ -30,48 +30,61 @@ npm i --save-dev web-test-runner
 
 ### Running tests
 
-Single run:
+The `wtr` command runs your test with the default configuration:
+
+- [es-dev-server] for serving your tests
+- [puppeteer] for launching the browser
+- [mocha] for running the tests in the browser
+
+These will all be configurable, but that is currently a work in progress.
+
+Do a single test run:
 
 ```bash
 wtr test/**/*.test.js
 ```
 
-Watch mode:
+Run in watch mode, reloading on file changes:
 
 ```bash
 wtr test/**/*.test.js --watch
 ```
 
-Debug in the browser:
+Debug your tests in the browser:
 
 ```bash
-wtr test/**/*.test.js --browser
+wtr test/**/*.test.js --debug
+```
+
+Run each test in a separate tab, executing them in parallel and preventing global scope pollution:
+
+```bash
+wtr test/**/*.test.js --test-isolation
 ```
 
 ### Writing tests
 
-WTR exports just a `test` function which defines a test. Setting up test suites, before/after each, etc. is still in the works.
+The default web-test-runner setup uses mocha:
 
 ```js
-import { test } from "web-test-runner";
-
-test("foo is bar", () => {
-  if ("foo" !== "bar") {
-    throw new Error("foo does not equal bar");
-  }
+describe('my test', () => {
+  it('foo is bar', () => {
+    if ('foo' !== 'bar') {
+      throw new Error('foo does not equal bar');
+    }
+  });
 });
 ```
 
 ### Writing assertions
 
-WTR does not have any built-in assertion library yet. We are still investigating what we want to do here. You can use any assertion library, as long as it works in the browser. For example, try this variant of chai shipped as es module:
+You can use any assertion library as long as it works in the browser. For example this es module version of chai:
 
 ```js
-import { test } from "web-test-runner";
-import { expect } from "@bundled-es-modules/chai";
+import { expect } from '@bundled-es-modules/chai';
 
-test("foo is bar", () => {
-  expect(foo).to.equal("bar");
+test('foo is bar', () => {
+  expect(foo).to.equal('bar');
 });
 ```
 
@@ -80,26 +93,14 @@ test("foo is bar", () => {
 To scaffold an HTML test fixture you can use the `@open-wc/testing-helpers` library.
 
 ```js
-import { test } from "web-test-runner";
-import { fixture, html } from "@open-wc/testing-helpers";
-import { expect } from "@bundled-es-modules/chai";
-import "../my-element.js";
+import { fixture, html } from '@open-wc/testing-helpers';
+import { expect } from '@bundled-es-modules/chai';
+import '../my-element.js';
 
-test("my-element should render properly", async () => {
-  const element = await fixture(html`<my-element></my-element>`);
-  expect(element.localName).to.equal("my-element");
+describe('my-element', () => {
+  it('should render properly', async () => {
+    const element = await fixture(html`<my-element></my-element>`);
+    expect(element.localName).to.equal('my-element');
+  });
 });
 ```
-
-## Running the project locally
-
-This project is built with es modules, in the browser, and in node. It has only been tested with node v14.
-
-`npm run start` runs the tests standalone
-`npm run test` does a single test run
-`npm run test:watch` runs tests in watch mode, reloading on changes
-
-## Technologies
-
-- [es-dev-server](https://www.npmjs.com/package/es-dev-server)
-- [puppeteer](https://www.npmjs.com/package/puppeteer)
