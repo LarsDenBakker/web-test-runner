@@ -52,7 +52,7 @@ export function createEsDevServer(): Server {
 
             if (ctx.status === 404) {
               const cleanUrl = ctx.url.split('?')[0].split('#')[0];
-              if (path.extname(cleanUrl)) {
+              if (path.extname(cleanUrl) && !cleanUrl.endsWith('favicon.ico')) {
                 logger.error(`Could not find file: .${ctx.url}`);
               }
             }
