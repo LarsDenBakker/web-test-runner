@@ -2,7 +2,7 @@
   "name": "web-test-runner",
   "version": "0.0.4",
   "description": "",
-  "main": "index.js",
+  "main": "dist/runtime/web-test-runner.js",
   "type": "module",
   "scripts": {
     "build": "tsc && cp src/runtime/web-test-runner.html dist/runtime/web-test-runner.html",

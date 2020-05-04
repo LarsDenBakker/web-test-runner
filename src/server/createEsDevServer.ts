@@ -10,7 +10,7 @@ const runnerHtml = fs.readFileSync(
   'utf-8'
 );
 const runnerJs = fs.readFileSync(
-  new URL('../runtime/web-test-runner-suite.js', import.meta.url),
+  new URL('../runtime/web-test-runner-controlled.js', import.meta.url),
   'utf-8'
 );
 

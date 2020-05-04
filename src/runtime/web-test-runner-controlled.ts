@@ -1,3 +1,8 @@
+/**
+ * This is the runtime that handles testing in the browser when it is controlled by a test
+ * runner. In the test runner, imports for the standalone variant are replaced with the controlled variant.
+ */
+
 import { TestFileResult, TestResult } from '../runner/TestFileResult.js';
 import { TestFunction } from './web-test-runner.js';
 import { RuntimeError } from './RuntimeError';
