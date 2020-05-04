@@ -35,6 +35,6 @@ logUncaughtErrors();
     // setTimeout to wait for logs to come in
     setTimeout(() => {
       finished({ testFiles, succeeded: importTestFailed || failures === 0, logs });
-    }, 100);
+    });
   });
 })();
