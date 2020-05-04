@@ -24,9 +24,11 @@ logUncaughtErrors();
 
   await Promise.all(
     testFiles.map((file) =>
-      import(new URL(file, document.baseURI).href).catch(() => {
+      import(new URL(file, document.baseURI).href).catch((error) => {
         importTestFailed = true;
-        console.error(`\x1b[31m[web-test-runner] Error loading test file: ${file}\x1b[0m`);
+        console.error(
+          `\x1b[31m[web-test-runner] Error loading test file: ${file}\n${error.stack}\x1b[0m`
+        );
       })
     )
   );
