@@ -12,7 +12,7 @@
     "test:watch": "npm run build && export LOCAL_TESTING=true && node dist/runner/cli.js demo/test/**/*.test.js --watch",
     "test:browser": "npm run build && export LOCAL_TESTING=true && node dist/runner/cli.js demo/test/**/*.test.js --browser",
     "test:404-import": "npm run build && export LOCAL_TESTING=true && node dist/runner/cli.js demo/test/404-import.test.js",
-    "publish": "npm run build && npm publish",
+    "release": "npm run build && npm publish",
     "start": "es-dev-server --open demo/"
   },
   "files": [
