@@ -32,7 +32,7 @@ const commandLineOptions = [
 
   runTests({
     files: [args.files],
-    testRunnerImport: 'web-test-runner/dist/implementations/mocha.js',
+    testRunnerImport: 'web-test-runner/dist/implementations/mocha/mocha.js',
     address: 'http://localhost',
     port: 9542,
     browserRunner: createPuppeteerRunner(),

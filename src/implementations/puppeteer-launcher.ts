@@ -22,12 +22,14 @@ export function createPuppeteerRunner(): BrowserRunner {
       if (config.testIsolation) {
         for (const testFile of testFiles) {
           browser.newPage().then((page) => {
-            page.goto(`${serverAddress}?test-files=${testFile}`);
+            page.goto(`${serverAddress}?test-files=${testFile}&debug=${String(config.debug)}`);
           });
         }
       } else {
         const page = await browser.newPage();
-        page.goto(`${serverAddress}?test-files=${testFiles.join(',')}`);
+        page.goto(
+          `${serverAddress}?test-files=${testFiles.join(',')}&debug=${String(config.debug)}`
+        );
       }
     },
   };
