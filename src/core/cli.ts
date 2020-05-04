@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 import commandLineArgs from 'command-line-args';
 import { runTests } from './runTests.js';
-import { createPuppeteerRunner } from '../browser-runner/createPuppeteerRunner.js';
-import { createEsDevServer } from '../server/createEsDevServer.js';
-import { defaultLogger } from '../logger/defaultLogger.js';
-import { specReporter } from '../reporter/specReporter.js';
+import { createPuppeteerRunner } from '../implementations/puppeteer-launcher.js';
+import { createEsDevServer } from '../implementations/es-dev-server.js';
+import { specReporter } from '../implementations/specReporter.js';
 
 const commandLineOptions = [
   {
@@ -35,7 +34,6 @@ const commandLineOptions = [
     browserRunner: createPuppeteerRunner(),
     server: createEsDevServer(),
     reporter: specReporter,
-    logger: defaultLogger,
     watch: !!args.watch,
     openBrowser: !!args.browser,
   });

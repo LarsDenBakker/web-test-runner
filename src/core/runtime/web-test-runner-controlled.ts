@@ -3,7 +3,7 @@
  * runner. In the test runner, imports for the standalone variant are replaced with the controlled variant.
  */
 
-import { TestFileResult, TestResult } from '../runner/TestFileResult.js';
+import { TestFileResult, TestResult } from '../TestFileResult.js';
 import { TestFunction } from './web-test-runner.js';
 import { RuntimeError } from './RuntimeError';
 

@@ -1,4 +1,4 @@
-import { test } from '../../dist/runtime/web-test-runner.js';
+import { test } from '../../dist/core/runtime/web-test-runner.js';
 
 test('undefined is not a function', () => {
   if (typeof undefined === 'function') {

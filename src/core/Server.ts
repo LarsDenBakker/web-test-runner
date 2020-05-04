@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
-import { TestFileResult } from '../runner/TestFileResult.js';
-import { TestRunnerConfig } from '../runner/TestRunnerConfig.js';
+import { TestFileResult } from './TestFileResult.js';
+import { TestRunnerConfig } from './TestRunnerConfig.js';
 
 export interface ServerEvents extends EventEmitter {
   addListener(

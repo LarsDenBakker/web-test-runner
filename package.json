@@ -2,16 +2,16 @@
   "name": "web-test-runner",
   "version": "0.0.6",
   "description": "",
-  "main": "dist/runtime/web-test-runner.js",
+  "main": "dist/core/runtime/web-test-runner.js",
   "type": "module",
   "scripts": {
-    "build": "tsc && cp src/runtime/web-test-runner.html dist/runtime/web-test-runner.html",
-    "test": "npm run build && export LOCAL_TESTING=true && node dist/runner/cli.js demo/test/**/*.test.js",
-    "test:fail": "npm run build && export LOCAL_TESTING=true && node dist/runner/cli.js demo/test/a.test.js",
-    "test:pass": "npm run build && export LOCAL_TESTING=true && node dist/runner/cli.js demo/test/c.test.js",
-    "test:watch": "npm run build && export LOCAL_TESTING=true && node dist/runner/cli.js demo/test/**/*.test.js --watch",
-    "test:browser": "npm run build && export LOCAL_TESTING=true && node dist/runner/cli.js demo/test/**/*.test.js --browser",
-    "test:404-import": "npm run build && export LOCAL_TESTING=true && node dist/runner/cli.js demo/test/404-import.test.js",
+    "build": "tsc && cp src/core/runtime/web-test-runner.html dist/core/runtime/web-test-runner.html",
+    "test": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js",
+    "test:fail": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/a.test.js",
+    "test:pass": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/c.test.js",
+    "test:watch": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js --watch",
+    "test:browser": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js --browser",
+    "test:404-import": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/404-import.test.js",
     "release": "npm run build && npm publish",
     "start": "es-dev-server --open demo/"
   },
@@ -19,7 +19,7 @@
     "dist"
   ],
   "bin": {
-    "wtr": "./dist/runner/cli.js"
+    "wtr": "./dist/core/cli.js"
   },
   "repository": {
     "type": "git",

@@ -1,5 +1,5 @@
 import puppeteer from 'puppeteer';
-import { BrowserRunner } from './BrowserRunner.js';
+import { BrowserRunner } from '../core/BrowserRunner.js';
 
 export function createPuppeteerRunner(): BrowserRunner {
   let serverAddress: string;

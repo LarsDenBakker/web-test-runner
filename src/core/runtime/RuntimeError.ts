@@ -1,4 +1,4 @@
-import { TestError } from '../runner/TestFileResult';
+import { TestError } from '../TestFileResult.js';
 
 export interface RuntimeError {
   testFilePath: string;

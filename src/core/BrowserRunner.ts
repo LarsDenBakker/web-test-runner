@@ -1,4 +1,4 @@
-import { TestRunnerConfig } from '../runner/TestRunnerConfig.js';
+import { TestRunnerConfig } from './TestRunnerConfig.js';
 
 export interface BrowserRunner {
   start(config: TestRunnerConfig): Promise<void>;
