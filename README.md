@@ -6,15 +6,15 @@ A test runner for the modern web.
 
 ## Project goals
 
-The goal for this project is simple:
+The goal of this project is simple:
 
 1. Open a browser
 2. Import your test files (as es modules)
 3. Report back the results
 
-Besides that we try to create a good test authoring experience.
+The test runner is highly configurable, you can bring your own browser launcher, web server, test framework and/or test reporter.
 
-The test runner is highly configurable, you can bring your own browser launcher, web server, test framework or test reporter. But we have a good default implementation as well, which will be in a separate package.
+There is a good default implementation which doesn't require any configuration.
 
 ## Usage
 
@@ -30,7 +30,7 @@ npm i --save-dev web-test-runner
 
 ### Running tests
 
-Currently the `wtr` command runs your test with the default configuration:
+Currently, the `wtr` command runs your test with the default configuration:
 
 - [es-dev-server](https://www.npmjs.com/package/es-dev-server) for serving your tests
 - [puppeteer](https://www.npmjs.com/package/puppeteer) for launching the browser
@@ -125,9 +125,13 @@ export interface TestRunnerConfig {
 
 ### Custom test runner
 
-A test runner runs the tests in the browser, for example mocha. When the browser is launched, the `testRunnerImport` is imported from the browser as an es module. This module is then responsible for importing your tests and reporting back the results.
+A test runner runs the tests in the browser, for example mocha. When the browser is launched, the `testRunnerImport` file is imported from the browser as an es module.
 
-The browser launcher sets up some configuration in the URL search paramers. For example:
+This module is responsible for importing your tests and reporting back the results. If you're using a test framework, this file can set up as a bridge between the test framework and web test runner.
+
+The browser launcher sets up some configuration in the URL search paramers, you can use this for running our tests.
+
+Example implementation:
 
 ```js
 import { finished, captureConsoleOutput, logUncaughtErrors } from 'web-test-runner/runtime.js';
@@ -190,12 +194,12 @@ export function createBrowserLauncher() {
 
 ### Custom server
 
-A custom server involves a bit more work than the others. It serves the test files and responds to requests from the browser.
+The server is responsible for serving the test files and responding to requests from the browser.
 
-The API for the server is still a work in progress, currently it should:
+The API for the server is still a work in progress, we will likely separate responding to API requests from serving logic. Currently, it should:
 
 - Serve static files required by the tests
-- Serve a `index.html` at the URL `/` containing the code needed to load the `testRunnerImport`.
+- Serve an `index.html` at the URL `/` containing the code needed to load the `testRunnerImport`.
 - Respond to `/wtr/browser-finished`, emitting a browser-finished event.
 
 See the [types](https://github.com/LarsDenBakker/web-test-runner/blob/master/src/core/Server.ts) and [reference implementation](https://github.com/LarsDenBakker/web-test-runner/blob/master/src/implementations/es-dev-server.ts)
