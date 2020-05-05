@@ -9,15 +9,6 @@ import { logger } from '../core/logger.js';
 import { Server } from '../core/Server.js';
 import { BrowserResult } from '../core/runtime.js';
 
-const runnerHtml = fs.readFileSync(
-  new URL('../core/runtime/web-test-runner.html', import.meta.url),
-  'utf-8'
-);
-const runnerJs = fs.readFileSync(
-  new URL('../core/runtime/web-test-runner-controlled.js', import.meta.url),
-  'utf-8'
-);
-
 export function createEsDevServer(): Server {
   const events = new EventEmitter();
   // TODO: EDS types
