@@ -127,9 +127,9 @@ export interface TestRunnerConfig {
 
 A test runner runs the tests in the browser, for example mocha. When the browser is launched, the `testRunnerImport` file is imported from the browser as an es module.
 
-This module is responsible for importing your tests and reporting back the results. If you're using a test framework, this file can set up as a bridge between the test framework and web test runner.
+This module is responsible for importing your tests and reporting back the results. If you're using a test framework, this file acts as a bridge between the test framework and web test runner.
 
-The browser launcher sets up some configuration in the URL search paramers, you can use this for running our tests.
+The browser launcher puts some configuration in the URL search paramers, you can use this for running our tests.
 
 Example implementation:
 
