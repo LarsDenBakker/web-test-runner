@@ -29,10 +29,6 @@ const commandLineOptions = [
 
 (async () => {
   const args = commandLineArgs(commandLineOptions);
-  if (!args.files) {
-    throw new Error('You need to specify which tests to run.');
-  }
-
   let userConfig = {};
   const configPath = path.join(process.cwd(), './web-test-runner.config.js');
   if (fs.existsSync(configPath)) {
@@ -69,6 +65,10 @@ const commandLineOptions = [
   }
   if ('test-isolation' in args) {
     config.testIsolation = !!args['test-isolation'];
+  }
+
+  if (!config.files) {
+    throw new Error('You need to specify which tests to run.');
   }
 
   runTests(config);
