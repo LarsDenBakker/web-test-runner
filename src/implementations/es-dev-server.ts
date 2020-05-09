@@ -11,7 +11,7 @@ import { logger } from '../core/logger.js';
 import { Server } from '../core/Server.js';
 import { BrowserResult } from '../core/runtime.js';
 
-export function createEsDevServer(devServerConfig?: object): Server {
+export function createEsDevServer(devServerConfig: object = {}): Server {
   const events = new EventEmitter();
   // TODO: EDS types
   let server: any;
