@@ -11,6 +11,7 @@ const commandLineOptions = [
   {
     name: 'files',
     type: String,
+    multiple: true,
     defaultOption: true,
   },
   {
@@ -55,7 +56,7 @@ const commandLineOptions = [
   };
 
   if ('files' in args) {
-    config.files = [args.files];
+    config.files = args.files;
   }
   if ('watch' in args) {
     config.watch = !!args.watch;
