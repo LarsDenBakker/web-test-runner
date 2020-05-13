@@ -1,8 +1,8 @@
 import puppeteer from 'puppeteer';
-import { BrowserRunner } from '../core/BrowserRunner.js';
+import { BrowserLauncher } from '../core/BrowserLauncher.js';
 import { TestRunnerConfig } from '../core/TestRunnerConfig.js';
 
-export function createPuppeteerRunner(): BrowserRunner {
+export function createPuppeteerLauncher(): BrowserLauncher {
   let config: TestRunnerConfig;
   let serverAddress: string;
   let browser: puppeteer.Browser;

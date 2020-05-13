@@ -51,7 +51,7 @@ export async function runTests(config: TestRunnerConfig) {
       !config.watch && !config.debug && finishedTestFiles.length === testFiles.length;
 
     if (shouldExit) {
-      await config.browserRunner.stop();
+      await config.browserLauncher.stop();
       await config.server.stop();
 
       if (failed) {
@@ -61,6 +61,6 @@ export async function runTests(config: TestRunnerConfig) {
     }
   });
 
-  await config.browserRunner.start(config);
-  await config.browserRunner.runTests(testFiles);
+  await config.browserLauncher.start(config);
+  await config.browserLauncher.runTests(testFiles);
 }

@@ -1,10 +1,10 @@
-import { BrowserRunner } from './BrowserRunner.js';
+import { BrowserLauncher } from './BrowserLauncher.js';
 import { Server } from './Server.js';
 
 export interface TestRunnerConfig {
   files: string | string[];
   testRunnerImport: string;
-  browserRunner: BrowserRunner;
+  browserLauncher: BrowserLauncher;
   server: Server;
   address: string;
   port: number;
