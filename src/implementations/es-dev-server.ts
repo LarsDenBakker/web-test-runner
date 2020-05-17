@@ -1,6 +1,6 @@
-//@ts-ignore TS PR is WIP
+// @ts-ignore
 import esDevServer from 'es-dev-server';
-//@ts-ignore -> deepmerge has no types?
+// @ts-ignore -> deepmerge has no types?
 import deepmerge from 'deepmerge';
 import { EventEmitter } from 'events';
 import path from 'path';
@@ -30,7 +30,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
             middlewares: [
               async function middleware(ctx: Context, next: Next) {
                 if (ctx.path.startsWith('/wtr/')) {
-                  const [,, testSetId, command] = ctx.path.split('/');
+                  const [, , testSetId, command] = ctx.path.split('/');
                   if (!testSetId) return next();
                   if (!command) return next();
 
@@ -61,7 +61,10 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                   if (command === 'test-set-finished') {
                     ctx.status = 200;
                     const result = (await parse.json(ctx)) as BrowserResult;
-                    events.emit('test-set-finished', { testSetId, result } as TestSetFinishedEventArgs);
+                    events.emit('test-set-finished', {
+                      testSetId,
+                      result,
+                    } as TestSetFinishedEventArgs);
                     return;
                   }
                 }
@@ -76,14 +79,22 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                 }
               },
             ],
-            responseTransformers: [
-              function serveTestHTML({ url }: { url: string }) {
-                const cleanUrl = url.split('?')[0].split('#')[0];
-                if (cleanUrl === '/') {
-                  return {
-                    body: `<html><head></head><body><script type="module">import "${testRunnerImport}";</script></body></html>`,
-                  };
-                }
+            plugins: [
+              {
+                serve(context: Context) {
+                  if (context.path === '/') {
+                    return {
+                      body: `<html>
+  <head></head>
+  <body>
+    <script type="module">
+      import "${testRunnerImport}";
+    </script>
+  </body>
+</html>`,
+                    };
+                  }
+                },
               },
             ],
           },

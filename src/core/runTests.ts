@@ -94,7 +94,7 @@ export async function runTests(config: TestRunnerConfig) {
       await config.server.stop();
 
       if (someTestsFailed) {
-        console.log('');
+        console.log('exit 1');
         process.exit(1);
       }
     }
