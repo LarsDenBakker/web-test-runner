@@ -14,4 +14,10 @@ describe('test b', () => {
       throw new Error('this error is thrown outside test');
     });
   });
+
+  for (let i = 0; i < 5; i += 1) {
+    it(`test ${i}`, async () => {
+      await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 200) + 200));
+    });
+  }
 });
