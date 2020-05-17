@@ -3,9 +3,8 @@
   "version": "0.0.14",
   "description": "",
   "main": "dist/core/runtime/web-test-runner.js",
-  "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist && tsc && tsc --build tsconfig-runtime.json",
     "test": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js",
     "test:debug": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js --debug",
     "test:isolated": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js --test-isolation",
@@ -42,7 +41,6 @@
     "@types/koa": "^2.11.3",
     "@types/uuid": "^7.0.3",
     "co-body": "^6.0.0",
-    "uuid": "^8.0.0",
     "command-line-args": "^5.1.1",
     "deepmerge": "^4.2.2",
     "es-dev-server": "^1.50.5",
@@ -51,7 +49,8 @@
     "mocha": "^7.1.2",
     "mochawesome": "^6.1.1",
     "puppeteer": "^3.0.2",
-    "tap-spec": "^5.0.0"
+    "tap-spec": "^5.0.0",
+    "uuid": "^8.0.0"
   },
   "devDependencies": {
     "@bundled-es-modules/chai": "^4.2.2",

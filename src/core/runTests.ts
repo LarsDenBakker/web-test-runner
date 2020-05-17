@@ -1,9 +1,8 @@
-//@ts-ignore
 import globby from 'globby';
 import { v4 as uuid } from 'uuid';
-import { LogMessage } from './runtime.js';
-import { TestRunnerConfig } from './TestRunnerConfig.js';
-import { logger } from './logger.js';
+import { LogMessage } from './runtime/types';
+import { TestRunnerConfig } from './TestRunnerConfig';
+import { logger } from './logger';
 
 async function collectTestFiles(patterns: string | string[]) {
   const testFiles: string[] = [];

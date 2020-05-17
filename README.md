@@ -16,10 +16,6 @@ The test runner is highly configurable, you can bring your own browser launcher,
 
 There is a good default implementation which doesn't require any configuration.
 
-## Usage
-
-> WTR is currently only published as an es module. You need to use node v13 or higher, or v12 with the `--experimental-modules` flag.
-
 ### Installation
 
 See [wtr-example](https://github.com/LarsDenBakker/wtr-example) for an example of how WTR can be used.
@@ -107,7 +103,7 @@ describe('my-element', () => {
 
 ## Configuration
 
-We look for a `web-test-runner.config.js` file in the currently working directory. This should be an es module with a default export. It can have the following options:
+We look for a `web-test-runner.config.js` file in the currently working directory. It should export an object with the following options:
 
 ```ts
 export interface TestRunnerConfig {
@@ -207,7 +203,6 @@ export function createBrowserLauncher(): BrowserLauncher {
     },
   };
 }
-
 ```
 
 ### Custom server

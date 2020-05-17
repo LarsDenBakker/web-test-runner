@@ -1,26 +1,8 @@
-import { TEST_SET_ID_PARAM } from './constants';
-
-type LogLevel = 'log' | 'error' | 'debug' | 'warn';
-
-export interface LogMessage {
-  level: LogLevel;
-  messages: string[];
-}
-
-export interface RuntimeConfig {
-  testFiles: string[];
-  debug: boolean;
-  testIsolation: boolean;
-  watch: boolean;
-}
-
-export interface BrowserResult {
-  succeeded: boolean;
-}
+import { LogLevel, RuntimeConfig, LogMessage, BrowserResult } from './types';
 
 const pendingLogs: Set<Promise<any>> = new Set();
 
-const id = new URL(window.location.href).searchParams.get(TEST_SET_ID_PARAM);
+const id = new URL(window.location.href).searchParams.get('wtr-test-set-id');
 if (!id) {
   throw new Error(`Could not find any test id query parameter.`);
 }

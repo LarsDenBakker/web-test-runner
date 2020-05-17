@@ -1,14 +1,12 @@
-// @ts-ignore
-import esDevServer from 'es-dev-server';
-// @ts-ignore -> deepmerge has no types?
+import { createConfig, startServer } from 'es-dev-server';
 import deepmerge from 'deepmerge';
 import { EventEmitter } from 'events';
 import path from 'path';
 import { Context, Next } from 'koa';
 import parse from 'co-body';
-import { logger } from '../core/logger.js';
-import { Server, TestSetFinishedEventArgs, LogEventArgs } from '../core/Server.js';
-import { BrowserResult, LogMessage, RuntimeConfig } from '../core/runtime.js';
+import { logger } from '../../core/logger';
+import { Server, TestSetFinishedEventArgs, LogEventArgs } from '../../core/Server';
+import { BrowserResult, LogMessage, RuntimeConfig } from '../../core/runtime/types';
 
 export function createEsDevServer(devServerConfig: object = {}): Server {
   const events = new EventEmitter();
@@ -21,7 +19,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
         ? config.testRunnerImport.replace('web-test-runner', '.')
         : config.testRunnerImport;
 
-      const serverConfig = esDevServer.createConfig(
+      const serverConfig = createConfig(
         deepmerge(
           {
             watch: config.watch,
@@ -102,7 +100,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
         )
       );
 
-      ({ server } = await esDevServer.startServer(serverConfig));
+      ({ server } = await startServer(serverConfig));
     },
 
     async stop() {

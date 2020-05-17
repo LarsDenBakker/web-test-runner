@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { BrowserResult, LogMessage } from './runtime.js';
+import { BrowserResult, LogMessage } from './runtime/types';
 import { TestRunnerConfig } from './TestRunnerConfig.js';
 
 export type TestSetFinishedEventArgs = { testSetId: string; result: BrowserResult };

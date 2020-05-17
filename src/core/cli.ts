@@ -2,10 +2,10 @@
 import commandLineArgs from 'command-line-args';
 import fs from 'fs';
 import path from 'path';
-import { runTests } from './runTests.js';
-import { createPuppeteerLauncher } from '../implementations/puppeteer-launcher.js';
-import { createEsDevServer } from '../implementations/es-dev-server.js';
-import { TestRunnerConfig } from './TestRunnerConfig.js';
+import { runTests } from './runTests';
+import { createPuppeteerLauncher } from '../implementations/browser-launchers/puppeteer-launcher';
+import { createEsDevServer } from '../implementations/servers/es-dev-server';
+import { TestRunnerConfig } from './TestRunnerConfig';
 
 const commandLineOptions = [
   {
@@ -46,7 +46,7 @@ const commandLineOptions = [
     watch: false,
     debug: false,
     testIsolation: false,
-    testRunnerImport: 'web-test-runner/dist/implementations/mocha-test-runner.js',
+    testRunnerImport: 'web-test-runner/dist/implementations/frameworks/mocha.js',
     address: 'http://localhost',
     port: 9542,
     browserLauncher: createPuppeteerLauncher(),

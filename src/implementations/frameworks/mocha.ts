@@ -5,7 +5,7 @@ import {
   getConfig,
   captureConsoleOutput,
   logUncaughtErrors,
-} from '../core/runtime.js';
+} from '../../core/runtime/runtime';
 
 captureConsoleOutput();
 logUncaughtErrors();

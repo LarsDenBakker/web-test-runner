@@ -1,17 +1,17 @@
-import puppeteer from 'puppeteer';
-import { BrowserLauncher } from '../core/BrowserLauncher.js';
-import { TestRunnerConfig } from '../core/TestRunnerConfig.js';
-import { TEST_SET_ID_PARAM } from '../core/constants.js';
+import { launch, Browser } from 'puppeteer';
+import { BrowserLauncher } from '../../core/BrowserLauncher';
+import { TestRunnerConfig } from '../../core/TestRunnerConfig';
+import { TEST_SET_ID_PARAM } from '../../core/constants';
 
 export function createPuppeteerLauncher(): BrowserLauncher {
   let config: TestRunnerConfig;
   let serverAddress: string;
-  let browser: puppeteer.Browser;
+  let browser: Browser;
 
   return {
     async start(_config) {
       config = _config;
-      browser = await puppeteer.launch({ devtools: config.debug });
+      browser = await launch({ devtools: config.debug });
       serverAddress = `${config.address}:${config.port}/`;
     },
 
