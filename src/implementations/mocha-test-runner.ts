@@ -57,7 +57,7 @@ logUncaughtErrors();
   mocha.run((failures) => {
     // setTimeout to wait for logs to come in
     setTimeout(() => {
-      finished(importTestFailed || failures === 0);
+      finished(!importTestFailed && failures === 0);
     });
   });
 })();
