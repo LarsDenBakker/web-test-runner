@@ -7,6 +7,7 @@
   "scripts": {
     "build": "tsc",
     "test": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js",
+    "test:debug": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js --debug",
     "test:fail": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/a.test.js",
     "test:pass": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/c.test.js",
     "test:watch": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js --watch",
@@ -39,7 +40,9 @@
   "dependencies": {
     "@types/deepmerge": "^2.2.0",
     "@types/koa": "^2.11.3",
+    "@types/uuid": "^7.0.3",
     "co-body": "^6.0.0",
+    "uuid": "^8.0.0",
     "command-line-args": "^5.1.1",
     "deepmerge": "^4.2.2",
     "es-dev-server": "^1.47.0",

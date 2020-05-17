@@ -1,16 +1,18 @@
 import { Runner, MochaOptions } from 'mocha';
-import { finished, captureConsoleOutput, logUncaughtErrors } from '../../core/runtime.js';
+import {
+  finished,
+  log,
+  getConfig,
+  captureConsoleOutput,
+  logUncaughtErrors,
+} from '../core/runtime.js';
 
-const logs = captureConsoleOutput();
+captureConsoleOutput();
 logUncaughtErrors();
 
 (async () => {
-  const params = new URLSearchParams(window.location.search);
-  const testFilesParam = params.get('test-files');
-  if (!testFilesParam) {
-    throw new Error('No test files set in search params.');
-  }
-  const debug = params.get('debug') === 'true';
+  const { testFiles, debug } = await getConfig();
+
   const div = document.createElement('div');
   div.id = 'mocha';
   document.body.appendChild(div);
@@ -39,7 +41,6 @@ logUncaughtErrors();
   }
 
   mocha.setup({ reporter: MyReporter, ui: 'bdd', color: true, allowUncaught: false });
-  const testFiles = testFilesParam.split(',');
   let importTestFailed = false;
 
   await Promise.all(
@@ -56,11 +57,7 @@ logUncaughtErrors();
   mocha.run((failures) => {
     // setTimeout to wait for logs to come in
     setTimeout(() => {
-      finished({
-        testFiles,
-        succeeded: importTestFailed || failures === 0,
-        logs,
-      });
+      finished(importTestFailed || failures === 0);
     });
   });
 })();

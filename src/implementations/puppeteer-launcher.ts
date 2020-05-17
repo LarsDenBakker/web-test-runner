@@ -1,6 +1,7 @@
 import puppeteer from 'puppeteer';
 import { BrowserLauncher } from '../core/BrowserLauncher.js';
 import { TestRunnerConfig } from '../core/TestRunnerConfig.js';
+import { TEST_SET_ID_PARAM } from '../core/constants.js';
 
 export function createPuppeteerLauncher(): BrowserLauncher {
   let config: TestRunnerConfig;
@@ -18,18 +19,11 @@ export function createPuppeteerLauncher(): BrowserLauncher {
       await browser.close();
     },
 
-    async runTests(testFiles) {
-      if (config.testIsolation) {
-        for (const testFile of testFiles) {
-          browser.newPage().then((page) => {
-            page.goto(`${serverAddress}?test-files=${testFile}&debug=${String(config.debug)}`);
-          });
-        }
-      } else {
-        const page = await browser.newPage();
-        page.goto(
-          `${serverAddress}?test-files=${testFiles.join(',')}&debug=${String(config.debug)}`
-        );
+    async runTests(testSets) {
+      for (const [id] of testSets) {
+        browser.newPage().then((page) => {
+          page.goto(`${serverAddress}?${TEST_SET_ID_PARAM}=${id}`);
+        });
       }
     },
   };

@@ -1,6 +1,7 @@
 //@ts-ignore
 import globby from 'globby';
-import { Readable } from 'stream';
+import { v4 as uuid } from 'uuid';
+import { LogMessage } from './runtime.js';
 import { TestRunnerConfig } from './TestRunnerConfig.js';
 import { logger } from './logger.js';
 
@@ -11,6 +12,18 @@ async function collectTestFiles(patterns: string | string[]) {
   }
 
   return testFiles.map((f) => (f.startsWith('.') ? f : `./${f}`));
+}
+
+function createTestSets(testFiles: string[], testIsolation: boolean) {
+  const testSets = new Map<string, string[]>();
+  if (!testIsolation) {
+    testSets.set(uuid(), testFiles);
+  } else {
+    for (const testFile of testFiles) {
+      testSets.set(uuid(), [testFile]);
+    }
+  }
+  return testSets;
 }
 
 export async function runTests(config: TestRunnerConfig) {
@@ -27,40 +40,67 @@ export async function runTests(config: TestRunnerConfig) {
     process.exit(1);
   }
 
-  const finishedTestFiles: string[] = [];
-  let failed = false;
+  logger.log(`Running ${testFiles.length} test files.`);
 
-  console.log(`[web-test-runner] Running ${testFiles.length} test files.`);
+  const testSets = createTestSets(testFiles, !!config.testIsolation);
+  const logsForTestSets = new Map<string, LogMessage[]>();
+  const finishedTestSets: string[] = [];
+  let someTestsFailed = false;
 
-  await config.server.start(config, testFiles);
+  config.server.events.addListener('log', async ({ testSetId, log }) => {
+    const sanitizedLog = {
+      ...log,
+      // remove server address from logs
+      messages: log.messages.map((message) =>
+        typeof message === 'string' ? message.replace(new RegExp(serverAddress, 'g'), '.') : message
+      ),
+    };
 
-  config.server.events.addListener('browser-finished', async ({ result }) => {
-    finishedTestFiles.push(...result.testFiles);
-    if (!failed && !result.succeeded) {
-      failed = true;
+    if (!config.testIsolation) {
+      // in non-test isolation we stream logs
+      console[sanitizedLog.level](...sanitizedLog.messages);
+      return;
     }
 
-    for (const log of result.logs) {
-      const cleanLogs = log.map((l) =>
-        typeof l === 'string' ? l.replace(new RegExp(serverAddress, 'g'), '.') : l
-      );
-      console.log(...cleanLogs);
+    // in test isolation we log after a test set is done to avoid logs from different test sets interfering
+    let logs: LogMessage[] | undefined = logsForTestSets.get(testSetId);
+    if (!logs) {
+      logs = [];
+      logsForTestSets.set(testSetId, logs);
+    }
+    logs.push(sanitizedLog);
+  });
+
+  config.server.events.addListener('test-set-finished', async ({ testSetId, result }) => {
+    finishedTestSets.push(testSetId);
+    if (!result.succeeded) {
+      someTestsFailed = true;
     }
 
-    const shouldExit =
-      !config.watch && !config.debug && finishedTestFiles.length === testFiles.length;
+    // if we are running in test isolation, we collected all the logs and print it once per test set
+    if (config.testIsolation) {
+      const logs = logsForTestSets.get(testSetId);
+      if (logs) {
+        for (const log of logs) {
+          console[log.level](...log.messages);
+        }
+      }
+    }
+
+    const shouldExit = !config.watch && !config.debug && finishedTestSets.length === testSets.size;
 
     if (shouldExit) {
       await config.browserLauncher.stop();
       await config.server.stop();
 
-      if (failed) {
+      if (someTestsFailed) {
         console.log('');
         process.exit(1);
       }
     }
   });
 
+  await config.server.start(config, testSets);
   await config.browserLauncher.start(config);
-  await config.browserLauncher.runTests(testFiles);
+  await config.browserLauncher.runTests(testSets);
 }

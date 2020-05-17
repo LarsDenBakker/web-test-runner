@@ -1,4 +1,5 @@
-import { test } from '../../dist/core/runtime/web-test-runner.js';
 import './x.js';
 
-test('is never registered because ./x.js does not exist', () => {});
+describe('test 404 import', () => {
+  it('is never registered because ./x.js does not exist', () => {});
+});

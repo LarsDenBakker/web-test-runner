@@ -1,4 +1,3 @@
-import fs from 'fs';
 //@ts-ignore TS PR is WIP
 import esDevServer from 'es-dev-server';
 //@ts-ignore -> deepmerge has no types?
@@ -8,8 +7,8 @@ import path from 'path';
 import { Context, Next } from 'koa';
 import parse from 'co-body';
 import { logger } from '../core/logger.js';
-import { Server } from '../core/Server.js';
-import { BrowserResult } from '../core/runtime.js';
+import { Server, TestSetFinishedEventArgs, LogEventArgs } from '../core/Server.js';
+import { BrowserResult, LogMessage, RuntimeConfig } from '../core/runtime.js';
 
 export function createEsDevServer(devServerConfig: object = {}): Server {
   const events = new EventEmitter();
@@ -17,7 +16,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
   let server: any;
 
   return {
-    async start(config) {
+    async start(config, testSets) {
       const testRunnerImport = process.env.LOCAL_TESTING
         ? config.testRunnerImport.replace('web-test-runner', '.')
         : config.testRunnerImport;
@@ -30,17 +29,41 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
             nodeResolve: true,
             middlewares: [
               async function middleware(ctx: Context, next: Next) {
-                if (ctx.url.startsWith('/wtr/debug')) {
-                  ctx.status = 200;
-                  console.log(ctx.url.replace('/wtr/debug/', ''));
-                  return;
-                }
+                if (ctx.path.startsWith('/wtr/')) {
+                  const [,, testSetId, command] = ctx.path.split('/');
+                  if (!testSetId) return next();
+                  if (!command) return next();
 
-                if (ctx.url === '/wtr/browser-finished') {
-                  ctx.status = 200;
-                  const result = (await parse.json(ctx)) as BrowserResult;
-                  events.emit('browser-finished', { result });
-                  return;
+                  if (command === 'log') {
+                    ctx.status = 200;
+                    const log = (await parse.json(ctx)) as LogMessage;
+                    events.emit('log', { testSetId, log } as LogEventArgs);
+                    return;
+                  }
+
+                  if (command === 'config') {
+                    if (!testSets.has(testSetId)) {
+                      ctx.status = 400;
+                      ctx.body = `Test id ${testSetId} not found`;
+                      logger.error(ctx.body);
+                      return;
+                    }
+
+                    ctx.body = JSON.stringify({
+                      testFiles: testSets.get(testSetId),
+                      debug: !!config.debug,
+                      watch: !!config.watch,
+                      testIsolation: !!config.testIsolation,
+                    } as RuntimeConfig);
+                    return;
+                  }
+
+                  if (command === 'test-set-finished') {
+                    ctx.status = 200;
+                    const result = (await parse.json(ctx)) as BrowserResult;
+                    events.emit('test-set-finished', { testSetId, result } as TestSetFinishedEventArgs);
+                    return;
+                  }
                 }
 
                 await next();

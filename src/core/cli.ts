@@ -46,7 +46,7 @@ const commandLineOptions = [
     watch: false,
     debug: false,
     testIsolation: false,
-    testRunnerImport: 'web-test-runner/dist/implementations/mocha/mocha.js',
+    testRunnerImport: 'web-test-runner/dist/implementations/mocha-test-runner.js',
     address: 'http://localhost',
     port: 9542,
     browserLauncher: createPuppeteerLauncher(),
