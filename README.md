@@ -113,7 +113,7 @@ We look for a `web-test-runner.config.js` file in the currently working director
 export interface TestRunnerConfig {
   files: string | string[];
   testRunnerImport: string;
-  browserRunner: BrowserRunner;
+  browserLauncher: BrowserLauncher;
   server: Server;
   address: string;
   port: number;
@@ -125,81 +125,93 @@ export interface TestRunnerConfig {
 
 ### Custom test runner
 
-A test runner runs the tests in the browser, for example mocha. When the browser is launched, the `testRunnerImport` file is imported from the browser as an es module.
+A test runner runs the tests in the browser. For example mocha. When the browser is launched, the `testRunnerImport` file is imported from the browser as an es module.
 
 This module is responsible for importing your tests and reporting back the results. If you're using a test framework, this file acts as a bridge between the test framework and web test runner.
 
-The browser launcher puts some configuration in the URL search paramers, you can use this for running our tests.
+Each test runner receives a set of tests, this can be one or more files depending on the user's input.
 
 Example implementation:
 
 ```js
-import { finished, captureConsoleOutput, logUncaughtErrors } from 'web-test-runner/runtime.js';
+import {
+  finished,
+  log,
+  getConfig,
+  captureConsoleOutput,
+  logUncaughtErrors,
+} from 'web-test-runner/runtime.js';
 
-// helper functions to capture logs
-const logs = captureConsoleOutput();
+// optional helpers
+captureConsoleOutput();
 logUncaughtErrors();
 
 (async () => {
-  const params = new URLSearchParams(window.location.search);
-  const testFilesParam = params.get('test-files');
-  const debug = params.get('debug') === 'true';
+  const { testFiles, debug, testIsolation, watch } = await getConfig();
 
-  // load all your tests
+  let importTestFailed = false;
+
+  // import all test files
   await Promise.all(
-    testFiles.map((file) =>
-      import(new URL(file, document.baseURI).href).catch((error) => {
+    testFiles.map((file) => {
+      const importPath = new URL(file, document.baseURI).href;
+      return import(importPath).catch((error) => {
         importTestFailed = true;
         console.error(
           `\x1b[31m[web-test-runner] Error loading test file: ${file}\n${error.stack}\x1b[0m`
         );
-      })
-    )
+      });
+    })
   );
 
-  // here you probably want to kick off the test runner after importing all the tests
+  /** run your tests, you need to implement this yourself */
+  const succeeded = runTests();
 
-  // wait until tests are completed, then call finished
-  finished({
-    testFiles,
-    succeeded: true,
-    logs,
-  });
+  // report back when you're done, passing a boolean to indicate if tests succeeded
+  finished(!importTestFailed && succeeded);
 })();
 ```
 
 ### Custom browser launcher
 
-The browser launcher is what boots up the browser. It should open the browser with the test files in the search parameters, as well as an indication if we are in debug mode.
+The browser launcher is what boots up the browser. It should open the browser with the test paramater id in the URL.
 
 ```js
-export function createBrowserLauncher() {
-  let config;
-  let browser;
+import puppeteer from 'puppeteer';
+import { BrowserLauncher } from '../core/BrowserLauncher.js';
+import { TestRunnerConfig } from '../core/TestRunnerConfig.js';
+import { TEST_SET_ID_PARAM } from '../core/constants.js';
+
+export function createBrowserLauncher(): BrowserLauncher {
+  let config: TestRunnerConfig;
+  let serverAddress: string;
+  let browser: puppeteer.Browser;
 
   return {
     async start(_config) {
       config = _config;
-      browser = await createBrowser();
+      browser = await puppeteer.launch({ devtools: config.debug });
+      serverAddress = `${config.address}:${config.port}/`;
     },
-    async stop() {},
-    async runTests(testFiles) {
-      browser.openPage(
-        `${serverAddress}?test-files=${testFiles.join(',')}&debug=${String(config.debug)}`
-      );
+
+    async stop() {
+      await browser.close();
+    },
+
+    async runTests(testSets) {
+      for (const [id] of testSets) {
+        browser.newPage().then((page) => {
+          page.goto(`${serverAddress}?${TEST_SET_ID_PARAM}=${id}`);
+        });
+      }
     },
   };
 }
+
 ```
 
 ### Custom server
 
 The server is responsible for serving the test files and responding to requests from the browser.
-
-The API for the server is still a work in progress, we will likely separate responding to API requests from serving logic. Currently, it should:
-
-- Serve static files required by the tests
-- Serve an `index.html` at the URL `/` containing the code needed to load the `testRunnerImport`.
-- Respond to `/wtr/browser-finished`, emitting a browser-finished event.
 
 See the [types](https://github.com/LarsDenBakker/web-test-runner/blob/master/src/core/Server.ts) and [reference implementation](https://github.com/LarsDenBakker/web-test-runner/blob/master/src/implementations/es-dev-server.ts)
