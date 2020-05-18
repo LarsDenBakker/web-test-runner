@@ -109,7 +109,7 @@ We look for a `web-test-runner.config.js` file in the currently working director
 export interface TestRunnerConfig {
   files: string | string[];
   testRunnerImport: string;
-  browserLauncher: BrowserLauncher;
+  browsers: BrowserLauncher | BrowserLauncher[];
   server: Server;
   address: string;
   port: number;
