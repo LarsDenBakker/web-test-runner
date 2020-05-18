@@ -20,7 +20,7 @@ export function puppeteerLauncher(): BrowserLauncher {
     },
 
     async runTests(testSets) {
-      for (const [id] of testSets) {
+      for (const { id } of testSets) {
         browser.newPage().then((page) => {
           page.goto(`${serverAddress}?${TEST_SET_ID_PARAM}=${id}`);
         });

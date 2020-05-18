@@ -3,6 +3,8 @@ import { v4 as uuid } from 'uuid';
 import { LogMessage } from './runtime/types';
 import { TestRunnerConfig } from './TestRunnerConfig';
 import { logger } from './logger';
+import { TestSet } from './TestSet';
+import { BrowserLauncher } from './BrowserLauncher';
 
 async function collectTestFiles(patterns: string | string[]) {
   const testFiles: string[] = [];
@@ -13,19 +15,32 @@ async function collectTestFiles(patterns: string | string[]) {
   return testFiles.map((f) => (f.startsWith('.') ? f : `./${f}`));
 }
 
-function createTestSets(testFiles: string[], testIsolation: boolean) {
-  const testSets = new Map<string, string[]>();
+function createTestSets(
+  browsers: BrowserLauncher[],
+  testFiles: string[],
+  testIsolation: boolean
+): Map<string, TestSet> {
+  const testSets = new Map<string, TestSet>();
+
   if (!testIsolation) {
-    testSets.set(uuid(), testFiles);
-  } else {
+    for (const browser of browsers) {
+      const id = uuid();
+      testSets.set(id, { id, browser, testFiles });
+    }
+    return testSets;
+  }
+
+  for (const browser of browsers) {
     for (const testFile of testFiles) {
-      testSets.set(uuid(), [testFile]);
+      const id = uuid();
+      testSets.set(id, { id, browser, testFiles: [testFile] });
     }
   }
   return testSets;
 }
 
 export async function runTests(config: TestRunnerConfig) {
+  const browsers = Array.isArray(config.browsers) ? config.browsers : [config.browsers];
   const serverAddress = `${config.address}:${config.port}`;
   const testFiles = await collectTestFiles(config.files);
 
@@ -41,7 +56,7 @@ export async function runTests(config: TestRunnerConfig) {
 
   logger.log(`Running ${testFiles.length} test files.`);
 
-  const testSets = createTestSets(testFiles, !!config.testIsolation);
+  const testSets = createTestSets(browsers, testFiles, !!config.testIsolation);
   const logsForTestSets = new Map<string, LogMessage[]>();
   const finishedTestSets: string[] = [];
   let someTestsFailed = false;
@@ -89,7 +104,10 @@ export async function runTests(config: TestRunnerConfig) {
     const shouldExit = !config.watch && !config.debug && finishedTestSets.length === testSets.size;
 
     if (shouldExit) {
-      await config.browserLauncher.stop();
+      for (const browser of browsers) {
+        await browser.stop();
+      }
+
       await config.server.stop();
 
       if (someTestsFailed) {
@@ -100,6 +118,10 @@ export async function runTests(config: TestRunnerConfig) {
   });
 
   await config.server.start(config, testSets);
-  await config.browserLauncher.start(config);
-  await config.browserLauncher.runTests(testSets);
+
+  for (const browser of browsers) {
+    browser.start(config).then(() => {
+      browser.runTests([...testSets.values()].filter((s) => s.browser === browser));
+    });
+  }
 }

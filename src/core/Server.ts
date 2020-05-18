@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import { BrowserResult, LogMessage } from './runtime/types';
 import { TestRunnerConfig } from './TestRunnerConfig.js';
+import { TestSet } from './TestSet';
 
 export type TestSetFinishedEventArgs = { testSetId: string; result: BrowserResult };
 export type LogEventArgs = { testSetId: string; log: LogMessage };
@@ -11,7 +12,7 @@ export interface ServerEvents extends EventEmitter {
 }
 
 export interface Server {
-  start(config: TestRunnerConfig, testSets: Map<string, string[]>): Promise<void>;
+  start(config: TestRunnerConfig, testSets: Map<string, TestSet>): Promise<void>;
 
   stop(): Promise<void>;
 

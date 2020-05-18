@@ -3,6 +3,7 @@ import deepmerge from 'deepmerge';
 import { EventEmitter } from 'events';
 import path from 'path';
 import { Context, Next } from 'koa';
+import net from 'net';
 import parse from 'co-body';
 import { logger } from '../../core/logger';
 import { Server, TestSetFinishedEventArgs, LogEventArgs } from '../../core/Server';
@@ -10,8 +11,7 @@ import { BrowserResult, LogMessage, RuntimeConfig } from '../../core/runtime/typ
 
 export function createEsDevServer(devServerConfig: object = {}): Server {
   const events = new EventEmitter();
-  // TODO: EDS types
-  let server: any;
+  let server: net.Server;
 
   return {
     async start(config, testSets) {
@@ -48,7 +48,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                     }
 
                     ctx.body = JSON.stringify({
-                      testFiles: testSets.get(testSetId),
+                      ...testSets.get(testSetId),
                       debug: !!config.debug,
                       watch: !!config.watch,
                       testIsolation: !!config.testIsolation,

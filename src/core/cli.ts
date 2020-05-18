@@ -53,7 +53,7 @@ const commandLineOptions = [
     testRunnerImport: 'web-test-runner/dist/implementations/frameworks/mocha.js',
     address: 'http://localhost',
     port: 9542,
-    browserLauncher: puppeteerLauncher(),
+    browsers: puppeteerLauncher(),
     server: createEsDevServer(),
 
     ...userConfig,

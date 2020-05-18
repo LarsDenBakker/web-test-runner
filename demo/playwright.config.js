@@ -3,5 +3,9 @@ const {
 } = require('../dist/implementations/browser-launchers/playwright-launcher');
 
 module.exports = {
-  browserLauncher: playwrightLauncher({ browserType: 'webkit' }),
+  browsers: [
+    playwrightLauncher({ browserType: 'chromium' }),
+    playwrightLauncher({ browserType: 'firefox' }),
+    playwrightLauncher({ browserType: 'webkit' }),
+  ],
 };

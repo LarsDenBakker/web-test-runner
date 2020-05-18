@@ -4,7 +4,7 @@ import { Server } from './Server.js';
 export interface TestRunnerConfig {
   files: string | string[];
   testRunnerImport: string;
-  browserLauncher: BrowserLauncher;
+  browsers: BrowserLauncher | BrowserLauncher[];
   server: Server;
   address: string;
   port: number;
