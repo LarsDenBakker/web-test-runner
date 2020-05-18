@@ -1,3 +1,7 @@
+const {
+  playwrightLauncher,
+} = require('../dist/implementations/browser-launchers/playwright-launcher');
+
 module.exports = {
-  browserLauncher: cre(),
+  browserLauncher: playwrightLauncher({ browserType: 'webkit' }),
 };

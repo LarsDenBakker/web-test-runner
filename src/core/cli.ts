@@ -3,7 +3,7 @@ import commandLineArgs from 'command-line-args';
 import fs from 'fs';
 import path from 'path';
 import { runTests } from './runTests';
-import { createPuppeteerLauncher } from '../implementations/browser-launchers/puppeteer-launcher';
+import { puppeteerLauncher } from '../implementations/browser-launchers/puppeteer-launcher';
 import { createEsDevServer } from '../implementations/servers/es-dev-server';
 import { TestRunnerConfig } from './TestRunnerConfig';
 
@@ -23,6 +23,10 @@ const commandLineOptions = [
     type: Boolean,
   },
   {
+    name: 'config',
+    type: String,
+  },
+  {
     name: 'test-isolation',
     type: Boolean,
   },
@@ -31,9 +35,9 @@ const commandLineOptions = [
 (async () => {
   const args = commandLineArgs(commandLineOptions);
   let userConfig = {};
-  const configPath = path.join(process.cwd(), './web-test-runner.config.js');
+  const configPath = path.resolve(args.config || './web-test-runner.config.js');
+
   if (fs.existsSync(configPath)) {
-    console.log('exists');
     const module = await import(configPath);
     if (!module.default) {
       throw new Error('Config should have a default export');
@@ -49,7 +53,7 @@ const commandLineOptions = [
     testRunnerImport: 'web-test-runner/dist/implementations/frameworks/mocha.js',
     address: 'http://localhost',
     port: 9542,
-    browserLauncher: createPuppeteerLauncher(),
+    browserLauncher: puppeteerLauncher(),
     server: createEsDevServer(),
 
     ...userConfig,
