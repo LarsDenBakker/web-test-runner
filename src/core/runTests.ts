@@ -43,6 +43,38 @@ export async function runTests(config: TestRunnerConfig) {
   const browsers = Array.isArray(config.browsers) ? config.browsers : [config.browsers];
   const serverAddress = `${config.address}:${config.port}`;
   const testFiles = await collectTestFiles(config.files);
+  let stopped = false;
+
+  async function stop() {
+    if (stopped) {
+      return;
+    }
+    stopped = true;
+    const tasks: Promise<any>[] = [];
+    tasks.push(
+      config.server.stop().catch((error) => {
+        console.error(error);
+      })
+    );
+    for (const browser of browsers) {
+      tasks.push(
+        browser.stop().catch((error) => {
+          console.error(error);
+        })
+      );
+    }
+    await Promise.all(tasks);
+  }
+
+  (['exit', 'SIGINT'] as NodeJS.Signals[]).forEach((event) => {
+    process.on(event, stop);
+  });
+
+  process.on('uncaughtException', (error) => {
+    /* eslint-disable-next-line no-console */
+    console.error(error);
+    stop();
+  });
 
   if (testFiles.length === 0) {
     logger.error(`Could not find any files with pattern(s): ${config.files}`);
@@ -104,11 +136,7 @@ export async function runTests(config: TestRunnerConfig) {
     const shouldExit = !config.watch && !config.debug && finishedTestSets.length === testSets.size;
 
     if (shouldExit) {
-      for (const browser of browsers) {
-        await browser.stop();
-      }
-
-      await config.server.stop();
+      await stop();
 
       if (someTestsFailed) {
         console.log('exit 1');

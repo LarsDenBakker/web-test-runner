@@ -13,6 +13,7 @@
     "test:watch": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js --watch",
     "test:404-import": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/404-import.test.js",
     "test:playwright": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.js --config demo/playwright.config.js",
+    "test:browserstack": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.js --config demo/browserstack.config.js",
     "release": "npm run build && npm publish",
     "start": "es-dev-server --open demo/ --node-resolve"
   },
@@ -41,6 +42,8 @@
     "@types/deepmerge": "^2.2.0",
     "@types/koa": "^2.11.3",
     "@types/uuid": "^7.0.3",
+    "browserstack": "^1.6.0",
+    "browserstack-local": "^1.4.5",
     "co-body": "^6.0.0",
     "command-line-args": "^5.1.1",
     "deepmerge": "^4.2.2",
