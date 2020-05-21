@@ -1,8 +1,12 @@
 import { LogLevel, RuntimeConfig, LogMessage, BrowserResult } from './types';
 
+const PARAM_TEST_SET_ID = 'wtr-test-set-id';
+const PARAM_BROWSER_NAME = 'wtr-browser-name';
+
 const pendingLogs: Set<Promise<any>> = new Set();
 
-const id = new URL(window.location.href).searchParams.get('wtr-test-set-id');
+const browserName = new URL(window.location.href).searchParams.get(PARAM_BROWSER_NAME);
+const id = new URL(window.location.href).searchParams.get(PARAM_TEST_SET_ID);
 if (!id) {
   throw new Error(`Could not find any test id query parameter.`);
 }
@@ -42,7 +46,7 @@ export function logUncaughtErrors() {
 
 export async function getConfig(): Promise<RuntimeConfig> {
   try {
-    const response = await fetch(`/wtr/${id}/config`);
+    const response = await fetch(`/wtr/${browserName}/${id}/config`);
     return response.json();
   } catch (error) {
     await finished(false);
@@ -51,7 +55,7 @@ export async function getConfig(): Promise<RuntimeConfig> {
 }
 
 export async function log(log: LogMessage) {
-  const logPromise = postJSON(`/wtr/${id}/log`, log);
+  const logPromise = postJSON(`/wtr/${browserName}/${id}/log`, log);
   logPromise.then(() => {
     pendingLogs.delete(logPromise);
   });
@@ -61,5 +65,5 @@ export async function log(log: LogMessage) {
 
 export async function finished(succeeded: boolean): Promise<void> {
   await Promise.all(Array.from(pendingLogs)).catch(() => {});
-  await postJSON(`/wtr/${id}/test-set-finished`, { succeeded } as BrowserResult);
+  await postJSON(`/wtr/${browserName}/${id}/test-set-finished`, { succeeded } as BrowserResult);
 }

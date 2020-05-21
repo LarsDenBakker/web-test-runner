@@ -1,48 +1,52 @@
 //@ts-ignore
-import api from 'browserstack';
 import browserstack from 'browserstack-local';
+import webdriver, { ThenableWebDriver } from 'selenium-webdriver';
 import { BrowserLauncher } from '../../core/BrowserLauncher';
-import { TEST_SET_ID_PARAM } from '../../core/constants';
+import { TEST_SET_ID_PARAM, BROWSER_NAME_PARAM } from '../../core/constants';
 import { promisify } from 'util';
 import { TestRunnerConfig } from '../../core/TestRunnerConfig';
-import { logger } from '../../core/logger';
+
+export interface UserAgent {
+  browserName?: string;
+  device?: string;
+  browser_version?: string;
+  os: string;
+  os_version: string;
+}
 
 export interface BrowserstackLauncherConfig {
-  userAgents: [
-    {
-      browser?: string;
-      device?: string;
-      browser_version?: string;
-      os: string;
-      os_version: string;
-    }
-  ];
-
+  userAgents: UserAgent[];
   project?: string;
   buildName?: string;
 }
 
+function createName(userAgent: UserAgent) {
+  const { browserName, device, browser_version = 'latest', os, os_version } = userAgent;
+  return `${browserName ?? device}${
+    browser_version ? ' ' + browser_version : ''
+  } (${os} ${os_version})`;
+}
+
 export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserLauncher {
+  const username = process.env.BROWSER_STACK_USERNAME || process.env.BROWSERSTACK_USERNAME;
+  const password = process.env.BROWSER_STACK_ACCESS_KEY || process.env.BROWSERSTACK_ACCESS_KEY;
+  if (!username) {
+    throw new Error('Missing BROWSER_STACK_USERNAME environment variable.');
+  }
+  if (!password) {
+    throw new Error('Missing BROWSER_STACK_ACCESS_KEY environment variable.');
+  }
+
   const { userAgents, buildName, project } = args;
-  const workerIds: string[] = [];
+  const drivers: webdriver.ThenableWebDriver[] = [];
   let config: TestRunnerConfig;
   let serverAddress: string;
   let bsLocal: browserstack.Local;
-  let client: any;
 
   return {
     async start(_config) {
       config = _config;
       serverAddress = `${config.address}:${config.port}/`;
-      const username = process.env.BROWSER_STACK_USERNAME;
-      const password = process.env.BROWSER_STACK_ACCESS_KEY;
-
-      if (!username) {
-        throw new Error('Missing BROWSER_STACK_USERNAME environment variable.');
-      }
-      if (!password) {
-        throw new Error('Missing BROWSER_STACK_ACCESS_KEY environment variable.');
-      }
 
       bsLocal = new browserstack.Local();
       const bsLocalArgs = {
@@ -52,29 +56,29 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
       };
 
       await promisify(bsLocal.start).bind(bsLocal)(bsLocalArgs);
-      client = api.createClient({ username, password, local: true });
+      return args.userAgents.map(createName);
     },
 
     async stop() {
       process.kill((bsLocal as any).pid);
-      for (const workerId of workerIds) {
-        await promisify(client.terminateWorker).bind(client)(workerId);
-      }
+      await Promise.all(drivers.map((driver) => driver.quit().catch(() => {})));
+      // TODO: kill selenium
+      // for (const workerId of workerIds) {
+      //   await promisify(client.terminateWorker).bind(client)(workerId);
+      // }
       await promisify(bsLocal.stop).bind(bsLocal);
     },
 
     async runTests(testSets) {
       for (const userAgent of userAgents) {
-        const { browser, device, browser_version = 'latest', os, os_version } = userAgent;
-        const browserName = `${browser ?? device}${
-          browser_version ? ' ' + browser_version : ''
-        } (${os} ${os_version})`;
-        logger.log(`Connect browser: ${browserName}...`);
-
-        const settings = {
+        const name = createName(userAgent);
+        console.log('Starting browser', name);
+        const capabilities = {
           timeout: 300,
           name: 'web-test-runner test',
-          'browserstack.tunnel': true,
+          'browserstack.user': username,
+          'browserstack.key': password,
+          'browserstack.local': true,
           project,
           build:
             process.env.BUILD_NUMBER ||
@@ -85,20 +89,22 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
             process.env.CIRCLE_BUILD_NUM ||
             process.env.DRONE_BUILD_NUMBER ||
             buildName,
-          video: false,
-          browser,
-          device,
-          browser_version,
-          os,
-          os_version,
+          video: true,
+          ...userAgent,
         };
 
+        const driver = new webdriver.Builder()
+          .usingServer('http://hub.browserstack.com/wd/hub')
+          .withCapabilities(capabilities)
+          .build();
+        drivers.push(driver);
+
         for (const { id } of testSets) {
-          const worker = await promisify(client.createWorker).bind(client)({
-            url: `${serverAddress}?${TEST_SET_ID_PARAM}=${id}`,
-            ...settings,
-          });
-          workerIds.push(worker.id);
+          driver.executeScript(
+            `window.open('${serverAddress}?${TEST_SET_ID_PARAM}=${id}&${BROWSER_NAME_PARAM}=${encodeURIComponent(
+              name
+            )}')`
+          );
         }
       }
     },

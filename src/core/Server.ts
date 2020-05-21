@@ -3,8 +3,16 @@ import { BrowserResult, LogMessage } from './runtime/types';
 import { TestRunnerConfig } from './TestRunnerConfig.js';
 import { TestSet } from './TestSet';
 
-export type TestSetFinishedEventArgs = { testSetId: string; result: BrowserResult };
-export type LogEventArgs = { testSetId: string; log: LogMessage };
+export type TestSetFinishedEventArgs = {
+  browserName: string;
+  testSetId: string;
+  result: BrowserResult;
+};
+export type LogEventArgs = {
+  browserName: string;
+  testSetId: string;
+  log: LogMessage;
+};
 
 export interface ServerEvents extends EventEmitter {
   addListener(name: 'test-set-finished', listener: (args: TestSetFinishedEventArgs) => void): this;

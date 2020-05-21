@@ -41,8 +41,8 @@
   "dependencies": {
     "@types/deepmerge": "^2.2.0",
     "@types/koa": "^2.11.3",
+    "@types/selenium-webdriver": "^4.0.9",
     "@types/uuid": "^7.0.3",
-    "browserstack": "^1.6.0",
     "browserstack-local": "^1.4.5",
     "co-body": "^6.0.0",
     "command-line-args": "^5.1.1",
@@ -54,6 +54,7 @@
     "mochawesome": "^6.1.1",
     "playwright": "^1.0.2",
     "puppeteer": "^3.0.2",
+    "selenium-webdriver": "^4.0.0-alpha.7",
     "tap-spec": "^5.0.0",
     "uuid": "^8.0.0"
   },

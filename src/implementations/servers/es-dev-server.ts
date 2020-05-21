@@ -28,14 +28,16 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
             middlewares: [
               async function middleware(ctx: Context, next: Next) {
                 if (ctx.path.startsWith('/wtr/')) {
-                  const [, , testSetId, command] = ctx.path.split('/');
+                  const [, , browserName, testSetId, command] = ctx.path
+                    .split('/')
+                    .map((e) => decodeURIComponent(e));
                   if (!testSetId) return next();
                   if (!command) return next();
 
                   if (command === 'log') {
                     ctx.status = 200;
                     const log = (await parse.json(ctx)) as LogMessage;
-                    events.emit('log', { testSetId, log } as LogEventArgs);
+                    events.emit('log', { browserName, testSetId, log } as LogEventArgs);
                     return;
                   }
 
@@ -60,6 +62,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                     ctx.status = 200;
                     const result = (await parse.json(ctx)) as BrowserResult;
                     events.emit('test-set-finished', {
+                      browserName,
                       testSetId,
                       result,
                     } as TestSetFinishedEventArgs);

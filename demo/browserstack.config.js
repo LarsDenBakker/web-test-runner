@@ -8,17 +8,17 @@ module.exports = {
       project: 'wtr-demo',
       userAgents: [
         {
-          browser: 'chrome',
+          browserName: 'chrome',
           os: 'windows',
           os_version: '10',
         },
         {
-          browser: 'firefox',
+          browserName: 'firefox',
           os: 'windows',
           os_version: '10',
         },
         {
-          browser: 'edge',
+          browserName: 'edge',
           os: 'windows',
           os_version: '10',
         },

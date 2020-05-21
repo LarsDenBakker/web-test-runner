@@ -1,7 +1,7 @@
 import playwright from 'playwright';
 import { BrowserLauncher } from '../../core/BrowserLauncher';
 import { TestRunnerConfig } from '../../core/TestRunnerConfig';
-import { TEST_SET_ID_PARAM } from '../../core/constants';
+import { TEST_SET_ID_PARAM, BROWSER_NAME_PARAM } from '../../core/constants';
 
 export type BrowserType = 'chromium' | 'firefox' | 'webkit';
 
@@ -34,6 +34,7 @@ export function playwrightLauncher({
             { headless: !config.debug };
       browser = await playwright[browserType].launch(options);
       serverAddress = `${config.address}:${config.port}/`;
+      return [browserType];
     },
 
     async stop() {
@@ -43,7 +44,9 @@ export function playwrightLauncher({
     async runTests(testSets) {
       for (const { id } of testSets) {
         browser.newPage().then((page) => {
-          page.goto(`${serverAddress}?${TEST_SET_ID_PARAM}=${id}`);
+          page.goto(
+            `${serverAddress}?${TEST_SET_ID_PARAM}=${id}&${BROWSER_NAME_PARAM}=${browserType}`
+          );
         });
       }
     },
