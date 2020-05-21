@@ -5,6 +5,7 @@ import { BrowserLauncher } from '../../core/BrowserLauncher';
 import { PARAM_SESSION_ID } from '../../core/constants';
 import { promisify } from 'util';
 import { TestRunnerConfig } from '../../core/TestRunnerConfig';
+import { TestSession } from '../../core/TestSession';
 
 export interface UserAgent {
   browserName?: string;
@@ -73,13 +74,25 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
       await promisify(bsLocal.stop).bind(bsLocal);
     },
 
-    async runTests(sessions) {
-      for (const session of sessions) {
+    async runTests(sessionsArray) {
+      const sessionsByUserAgent = new Map<UserAgent, TestSession[]>();
+
+      for (const session of sessionsArray) {
         const userAgent = browsers.get(session.browserName);
         if (!userAgent) {
           throw new Error(`Could not find user agent for browser: ${session.browserName}`);
         }
 
+        let s = sessionsByUserAgent.get(userAgent);
+        if (!s) {
+          s = [];
+          sessionsByUserAgent.set(userAgent, s);
+        }
+
+        s.push(session);
+      }
+
+      for (const [userAgent, sessions] of sessionsByUserAgent) {
         const capabilities = {
           timeout: 300,
           name: 'web-test-runner test',
@@ -107,7 +120,9 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
 
         drivers.push(driver);
 
-        driver.executeScript(`window.open('${serverAddress}?${PARAM_SESSION_ID}=${session.id}')`);
+        for (const session of sessions) {
+          driver.executeScript(`window.open('${serverAddress}?${PARAM_SESSION_ID}=${session.id}')`);
+        }
       }
     },
   };

@@ -18,6 +18,6 @@ export interface TestSuiteResult {
 
 // export interface TestSessionResult extends TestSuiteResult {
 export interface TestSessionResult {
-  session: TestSession;
+  id: string;
   succeeded: boolean;
 }

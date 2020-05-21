@@ -11,8 +11,8 @@
     "test:pass": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/c.test.js",
     "test:watch": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js --watch",
     "test:404-import": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/404-import.test.js",
-    "test:playwright": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.js --config demo/playwright.config.js",
-    "test:browserstack": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.js --config demo/browserstack.config.js",
+    "test:playwright": "export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.js --config demo/playwright.config.js",
+    "test:browserstack": "export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.js --config demo/browserstack.config.js",
     "test:performance": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/performance/**/*.test.js ",
     "release": "npm run build && npm publish",
     "start": "es-dev-server --open demo/ --node-resolve"

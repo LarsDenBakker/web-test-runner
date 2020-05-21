@@ -55,7 +55,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                     ctx.status = 200;
                     const result = (await parse.json(ctx)) as BrowserResult;
                     events.emit('session-finished', {
-                      session,
+                      id: session.id,
                       ...result,
                     } as TestSessionResult);
                     return;
