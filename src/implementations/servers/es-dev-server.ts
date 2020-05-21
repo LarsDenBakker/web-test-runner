@@ -6,15 +6,16 @@ import { Context, Next } from 'koa';
 import net from 'net';
 import parse from 'co-body';
 import { logger } from '../../core/logger';
-import { Server, TestSetFinishedEventArgs, LogEventArgs } from '../../core/Server';
-import { BrowserResult, LogMessage, RuntimeConfig } from '../../core/runtime/types';
+import { Server } from '../../core/Server';
+import { BrowserResult, RuntimeConfig } from '../../core/runtime/types';
+import { TestSessionResult } from '../../core/TestSessionResult';
 
 export function createEsDevServer(devServerConfig: object = {}): Server {
   const events = new EventEmitter();
   let server: net.Server;
 
   return {
-    async start(config, testSets) {
+    async start(config, sessions) {
       const testRunnerImport = process.env.LOCAL_TESTING
         ? config.testRunnerImport.replace('web-test-runner', '.')
         : config.testRunnerImport;
@@ -28,29 +29,21 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
             middlewares: [
               async function middleware(ctx: Context, next: Next) {
                 if (ctx.path.startsWith('/wtr/')) {
-                  const [, , browserName, testSetId, command] = ctx.path
-                    .split('/')
-                    .map((e) => decodeURIComponent(e));
-                  if (!testSetId) return next();
+                  const [, , sessionId, command] = ctx.path.split('/');
+                  if (!sessionId) return next();
                   if (!command) return next();
 
-                  if (command === 'log') {
-                    ctx.status = 200;
-                    const log = (await parse.json(ctx)) as LogMessage;
-                    events.emit('log', { browserName, testSetId, log } as LogEventArgs);
+                  const session = sessions.find((session) => session.id === sessionId);
+                  if (!session) {
+                    ctx.status = 400;
+                    ctx.body = `Session id ${sessionId} not found`;
+                    logger.error(ctx.body);
                     return;
                   }
 
                   if (command === 'config') {
-                    if (!testSets.has(testSetId)) {
-                      ctx.status = 400;
-                      ctx.body = `Test id ${testSetId} not found`;
-                      logger.error(ctx.body);
-                      return;
-                    }
-
                     ctx.body = JSON.stringify({
-                      ...testSets.get(testSetId),
+                      ...session,
                       debug: !!config.debug,
                       watch: !!config.watch,
                       testIsolation: !!config.testIsolation,
@@ -58,26 +51,26 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                     return;
                   }
 
-                  if (command === 'test-set-finished') {
+                  if (command === 'session-finished') {
                     ctx.status = 200;
                     const result = (await parse.json(ctx)) as BrowserResult;
-                    events.emit('test-set-finished', {
-                      browserName,
-                      testSetId,
-                      result,
-                    } as TestSetFinishedEventArgs);
+                    events.emit('session-finished', {
+                      session,
+                      ...result,
+                    } as TestSessionResult);
                     return;
                   }
                 }
 
                 await next();
 
-                if (ctx.status === 404) {
-                  const cleanUrl = ctx.url.split('?')[0].split('#')[0];
-                  if (path.extname(cleanUrl) && !cleanUrl.endsWith('favicon.ico')) {
-                    logger.error(`Could not find file: .${ctx.url}`);
-                  }
-                }
+                // TODO: 404 logging
+                // if (ctx.status === 404) {
+                //   const cleanUrl = ctx.url.split('?')[0].split('#')[0];
+                //   if (path.extname(cleanUrl) && !cleanUrl.endsWith('favicon.ico')) {
+                //     logger.error(`Could not find file: .${ctx.url}`);
+                //   }
+                // }
               },
             ],
             plugins: [

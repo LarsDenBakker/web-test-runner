@@ -8,4 +8,10 @@ describe('test c', () => {
   it('true equals true', () => {
     expect(true).to.equal(true);
   });
+
+  for (let i = 0; i < 5; i += 1) {
+    it(`test ${i}`, async () => {
+      await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 100) + 100));
+    });
+  }
 });

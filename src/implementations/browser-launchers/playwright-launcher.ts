@@ -1,52 +1,62 @@
 import playwright from 'playwright';
 import { BrowserLauncher } from '../../core/BrowserLauncher';
 import { TestRunnerConfig } from '../../core/TestRunnerConfig';
-import { TEST_SET_ID_PARAM, BROWSER_NAME_PARAM } from '../../core/constants';
+import { PARAM_SESSION_ID } from '../../core/constants';
 
 export type BrowserType = 'chromium' | 'firefox' | 'webkit';
 
-const browserTypes: BrowserType[] = ['chromium', 'firefox', 'webkit'];
+const validBrowserTypes: BrowserType[] = ['chromium', 'firefox', 'webkit'];
 
 export interface PlaywrightLauncherConfig {
-  browserType: BrowserType;
+  browserTypes: BrowserType[];
 }
 
 export function playwrightLauncher({
-  browserType = 'chromium',
+  browserTypes = ['chromium'],
 }: Partial<PlaywrightLauncherConfig> = {}): BrowserLauncher {
-  if (!browserTypes.includes(browserType)) {
+  if (browserTypes.some((t) => !validBrowserTypes.includes(t))) {
     throw new Error(
-      `Invalid browser type: ${browserType}. Valid browser types: ${browserTypes.join(', ')}`
+      `Invalid browser types: ${browserTypes}. Valid browser types: ${validBrowserTypes.join(', ')}`
     );
   }
 
   let config: TestRunnerConfig;
   let serverAddress: string;
-  let browser: playwright.Browser;
+  const browsers = new Map<string, playwright.Browser>();
 
   return {
     async start(_config) {
       config = _config;
-      const options: playwright.LaunchOptions =
-        browserType === 'chromium'
-          ? { devtools: config.debug }
-          : // firefox and safari don't support devtools option
-            { headless: !config.debug };
-      browser = await playwright[browserType].launch(options);
       serverAddress = `${config.address}:${config.port}/`;
-      return [browserType];
+
+      for (const browserType of browserTypes) {
+        const options: playwright.LaunchOptions =
+          browserType === 'chromium'
+            ? { devtools: config.debug }
+            : // firefox and safari don't support devtools option
+              { headless: !config.debug };
+        const browser = await playwright[browserType].launch(options);
+        browsers.set(browserType, browser);
+      }
+
+      return browserTypes;
     },
 
     async stop() {
-      await browser.close();
+      for (const browser of browsers.values()) {
+        await browser.close();
+      }
     },
 
     async runTests(testSets) {
-      for (const { id } of testSets) {
+      for (const { id, browserName } of testSets) {
+        const browser = browsers.get(browserName);
+        if (!browser) {
+          throw new Error(`Unknown browser name: ${browser}`);
+        }
+
         browser.newPage().then((page) => {
-          page.goto(
-            `${serverAddress}?${TEST_SET_ID_PARAM}=${id}&${BROWSER_NAME_PARAM}=${browserType}`
-          );
+          page.goto(`${serverAddress}?${PARAM_SESSION_ID}=${id}`);
         });
       }
     },

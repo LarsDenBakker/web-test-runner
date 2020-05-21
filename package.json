@@ -14,6 +14,7 @@
     "test:404-import": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/404-import.test.js",
     "test:playwright": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.js --config demo/playwright.config.js",
     "test:browserstack": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.js --config demo/browserstack.config.js",
+    "test:performance": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/performance/**/*.test.js ",
     "release": "npm run build && npm publish",
     "start": "es-dev-server --open demo/ --node-resolve"
   },
@@ -47,6 +48,7 @@
     "co-body": "^6.0.0",
     "command-line-args": "^5.1.1",
     "deepmerge": "^4.2.2",
+    "dynamic-terminal": "^1.0.6",
     "es-dev-server": "^1.50.5",
     "globby": "^11.0.0",
     "koa": "^2.11.0",
@@ -65,6 +67,7 @@
     "@types/globby": "^9.1.0",
     "@types/mocha": "^7.0.2",
     "@types/puppeteer": "^2.1.0",
+    "lodash-es": "^4.17.15",
     "typescript": "^3.8.3"
   }
 }

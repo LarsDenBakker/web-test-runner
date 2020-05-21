@@ -2,7 +2,7 @@
 import browserstack from 'browserstack-local';
 import webdriver, { ThenableWebDriver } from 'selenium-webdriver';
 import { BrowserLauncher } from '../../core/BrowserLauncher';
-import { TEST_SET_ID_PARAM, BROWSER_NAME_PARAM } from '../../core/constants';
+import { PARAM_SESSION_ID } from '../../core/constants';
 import { promisify } from 'util';
 import { TestRunnerConfig } from '../../core/TestRunnerConfig';
 
@@ -20,7 +20,7 @@ export interface BrowserstackLauncherConfig {
   buildName?: string;
 }
 
-function createName(userAgent: UserAgent) {
+function createBrowserName(userAgent: UserAgent) {
   const { browserName, device, browser_version = 'latest', os, os_version } = userAgent;
   return `${browserName ?? device}${
     browser_version ? ' ' + browser_version : ''
@@ -38,6 +38,7 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
   }
 
   const { userAgents, buildName, project } = args;
+  const browsers = new Map<string, UserAgent>();
   const drivers: webdriver.ThenableWebDriver[] = [];
   let config: TestRunnerConfig;
   let serverAddress: string;
@@ -56,7 +57,10 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
       };
 
       await promisify(bsLocal.start).bind(bsLocal)(bsLocalArgs);
-      return args.userAgents.map(createName);
+      for (const userAgent of userAgents) {
+        browsers.set(createBrowserName(userAgent), userAgent);
+      }
+      return Array.from(browsers.keys());
     },
 
     async stop() {
@@ -69,10 +73,13 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
       await promisify(bsLocal.stop).bind(bsLocal);
     },
 
-    async runTests(testSets) {
-      for (const userAgent of userAgents) {
-        const name = createName(userAgent);
-        console.log('Starting browser', name);
+    async runTests(sessions) {
+      for (const session of sessions) {
+        const userAgent = browsers.get(session.browserName);
+        if (!userAgent) {
+          throw new Error(`Could not find user agent for browser: ${session.browserName}`);
+        }
+
         const capabilities = {
           timeout: 300,
           name: 'web-test-runner test',
@@ -97,15 +104,10 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
           .usingServer('http://hub.browserstack.com/wd/hub')
           .withCapabilities(capabilities)
           .build();
+
         drivers.push(driver);
 
-        for (const { id } of testSets) {
-          driver.executeScript(
-            `window.open('${serverAddress}?${TEST_SET_ID_PARAM}=${id}&${BROWSER_NAME_PARAM}=${encodeURIComponent(
-              name
-            )}')`
-          );
-        }
+        driver.executeScript(`window.open('${serverAddress}?${PARAM_SESSION_ID}=${session.id}')`);
       }
     },
   };

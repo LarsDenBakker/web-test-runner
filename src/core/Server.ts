@@ -1,13 +1,9 @@
 import { EventEmitter } from 'events';
 import { BrowserResult, LogMessage } from './runtime/types';
 import { TestRunnerConfig } from './TestRunnerConfig.js';
-import { TestSet } from './TestSet';
+import { TestSession } from './TestSession';
+import { TestSessionResult } from './TestSessionResult';
 
-export type TestSetFinishedEventArgs = {
-  browserName: string;
-  testSetId: string;
-  result: BrowserResult;
-};
 export type LogEventArgs = {
   browserName: string;
   testSetId: string;
@@ -15,12 +11,12 @@ export type LogEventArgs = {
 };
 
 export interface ServerEvents extends EventEmitter {
-  addListener(name: 'test-set-finished', listener: (args: TestSetFinishedEventArgs) => void): this;
-  addListener(name: 'log', listener: (args: LogEventArgs) => void): this;
+  addListener(name: 'session-updated', listener: (args: TestSession) => void): this;
+  addListener(name: 'session-finished', listener: (args: TestSessionResult) => void): this;
 }
 
 export interface Server {
-  start(config: TestRunnerConfig, testSets: Map<string, TestSet>): Promise<void>;
+  start(config: TestRunnerConfig, sessions: TestSession[]): Promise<void>;
 
   stop(): Promise<void>;
 

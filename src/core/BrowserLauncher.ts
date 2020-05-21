@@ -1,8 +1,8 @@
 import { TestRunnerConfig } from './TestRunnerConfig';
-import { TestSet } from './TestSet';
+import { TestSession } from './TestSession';
 
 export interface BrowserLauncher {
   start(config: TestRunnerConfig): Promise<string[]>;
   stop(): Promise<void>;
-  runTests(testSets: TestSet[]): Promise<void>;
+  runTests(sessions: TestSession[]): void;
 }

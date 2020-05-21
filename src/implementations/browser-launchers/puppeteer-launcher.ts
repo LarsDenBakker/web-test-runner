@@ -1,7 +1,7 @@
 import { launch, Browser } from 'puppeteer';
 import { BrowserLauncher } from '../../core/BrowserLauncher';
 import { TestRunnerConfig } from '../../core/TestRunnerConfig';
-import { TEST_SET_ID_PARAM, BROWSER_NAME_PARAM } from '../../core/constants';
+import { PARAM_SESSION_ID } from '../../core/constants';
 
 export function puppeteerLauncher(): BrowserLauncher {
   let config: TestRunnerConfig;
@@ -20,10 +20,10 @@ export function puppeteerLauncher(): BrowserLauncher {
       await browser.close();
     },
 
-    async runTests(testSets) {
-      for (const { id } of testSets) {
+    async runTests(sessions) {
+      for (const { id } of sessions) {
         browser.newPage().then((page) => {
-          page.goto(`${serverAddress}?${TEST_SET_ID_PARAM}=${id}&${BROWSER_NAME_PARAM}=chrome`);
+          page.goto(`${serverAddress}?${PARAM_SESSION_ID}=${id}`);
         });
       }
     },

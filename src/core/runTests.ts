@@ -1,10 +1,11 @@
 import globby from 'globby';
 import { v4 as uuid } from 'uuid';
+import { DynamicTerminal, ILine, SPINNER } from 'dynamic-terminal';
 import { LogMessage } from './runtime/types';
 import { TestRunnerConfig } from './TestRunnerConfig';
 import { logger } from './logger';
-import { TestSet } from './TestSet';
-import { BrowserLauncher } from './BrowserLauncher';
+import { TestSession } from './TestSession';
+import { TestSessionResult, TestSuiteResult } from './TestSessionResult';
 
 async function collectTestFiles(patterns: string | string[]) {
   const testFiles: string[] = [];
@@ -12,27 +13,31 @@ async function collectTestFiles(patterns: string | string[]) {
     testFiles.push(...(await globby(pattern)));
   }
 
-  return testFiles.map((f) => (f.startsWith('.') ? f : `./${f}`));
+  return testFiles.map((f) => f);
 }
 
-function createTestSets(
-  browsers: BrowserLauncher[],
+const getFileCount = (sessions: TestSession[]) =>
+  sessions.reduce((total, s) => total + s.testFiles.length, 0);
+
+const getTestCount = (suite: TestSuiteResult): number =>
+  suite.tests.length + suite.suites.reduce((all, suite) => all + getTestCount(suite), 0);
+
+function createTestSessions(
+  browserNames: string[],
   testFiles: string[],
   testIsolation: boolean
-): Map<string, TestSet> {
-  const testSets = new Map<string, TestSet>();
+): TestSession[] {
+  const testSessions: TestSession[] = [];
+  const testFileSets = !testIsolation ? [testFiles] : testFiles.map((file) => [file]);
 
-  if (!testIsolation) {
-    const id = uuid();
-    testSets.set(id, { id, testFiles });
-    return testSets;
+  for (const browserName of browserNames) {
+    for (const testFiles of testFileSets) {
+      const id = uuid();
+      testSessions.push({ id, browserName, testFiles });
+    }
   }
 
-  for (const testFile of testFiles) {
-    const id = uuid();
-    testSets.set(id, { id, testFiles: [testFile] });
-  }
-  return testSets;
+  return testSessions;
 }
 
 interface TestStatus {
@@ -46,8 +51,11 @@ interface TestStatus {
 
 export async function runTests(config: TestRunnerConfig) {
   const browsers = Array.isArray(config.browsers) ? config.browsers : [config.browsers];
-  const serverAddress = `${config.address}:${config.port}`;
   const testFiles = await collectTestFiles(config.files);
+
+  const dt = new DynamicTerminal();
+  await dt.start();
+
   let stopped = false;
 
   async function stop() {
@@ -56,11 +64,13 @@ export async function runTests(config: TestRunnerConfig) {
     }
     stopped = true;
     const tasks: Promise<any>[] = [];
+    tasks.push(dt.stop(true));
     tasks.push(
       config.server.stop().catch((error) => {
         console.error(error);
       })
     );
+
     for (const browser of browsers) {
       tasks.push(
         browser.stop().catch((error) => {
@@ -91,69 +101,99 @@ export async function runTests(config: TestRunnerConfig) {
     process.exit(1);
   }
 
-  logger.log(`Running ${testFiles.length} test files.`);
-
-  const testSets = createTestSets(browsers, testFiles, !!config.testIsolation);
-  const status = new Map<string, Map<string, { finished: boolean; succeeded: boolean }>>();
-
-  // config.server.events.addListener('log', async ({ browserName, testSetId, log }) => {
-  //   const sanitizedLog = {
-  //     ...log,
-  //     // remove server address from logs
-  //     messages: log.messages.map((message) =>
-  //       typeof message === 'string' ? message.replace(new RegExp(serverAddress, 'g'), '.') : message
-  //     ),
-  //   };
-
-  //   if (!config.testIsolation) {
-  //     // in non-test isolation we stream logs
-  //     console[sanitizedLog.level](...sanitizedLog.messages);
-  //     return;
-  //   }
-
-  //   // in test isolation we log after a test set is done to avoid logs from different test sets interfering
-  //   status.get(browserName)?.get(testSetId)?.logs.push(sanitizedLog);
-  // });
-
-  config.server.events.addListener(
-    'test-set-finished',
-    async ({ browserName, testSetId, result }) => {
-      status.get(browserName)?.set(testSetId, { finished: true, succeeded: result.succeeded });
-
-      console.log(`${browserName}: ${testSetId}: ${result.succeeded ? 'succeeded' : 'failed'}`);
-
-      const shouldExit =
-        !config.watch &&
-        !config.debug &&
-        [...status.values()].every((e) => [...e.values()].every((e) => e.finished));
-
-      if (shouldExit) {
-        await stop();
-
-        const someTestsFailed = [...status.values()].some((e) =>
-          [...e.values()].some((e) => !e.succeeded)
-        );
-        if (someTestsFailed) {
-          console.log('exit 1');
-          process.exit(1);
-        }
-      }
-    }
-  );
-
-  await config.server.start(config, testSets);
-
+  const browserNames = [];
   for (const browser of browsers) {
     const names = await browser.start(config);
-    for (const name of names) {
-      status.set(name, new Map());
-      for (const testSetId of testSets.keys()) {
-        status.get(name)?.set(testSetId, { finished: false, succeeded: false });
-      }
+    if (!Array.isArray(names) || names.length === 0 || names.some((n) => typeof n !== 'string')) {
+      throw new Error('Browser start must return an array of strings.');
     }
+    browserNames.push(...names);
   }
 
+  const sessions = createTestSessions(browserNames, testFiles, !!config.testIsolation);
+  const succeeded: TestSessionResult[] = [];
+  const failed: TestSessionResult[] = [];
+  const running: TestSession[] = [];
+  const startTime = Date.now();
+
+  renderTerminal();
+
+  function renderTerminal() {
+    const lines: ILine[] | string[] = [];
+
+    if (succeeded.length > 0) {
+      lines.push('Succeeded: ');
+      for (const result of succeeded) {
+        for (const file of result.session.testFiles) {
+          lines.push(`✓ ${file}`);
+        }
+      }
+      lines.push('');
+    }
+
+    if (failed.length > 0) {
+      lines.push('Failed: ');
+      for (const result of failed) {
+        for (const file of result.session.testFiles) {
+          lines.push(`✘ ${file}`);
+        }
+      }
+      lines.push('');
+    }
+
+    if (running.length > 0) {
+      lines.push('Running: ');
+      for (const session of running) {
+        for (const file of session.testFiles) {
+          lines.push(`${SPINNER} [${session.browserName}] ${file}`);
+        }
+      }
+      lines.push('');
+    }
+
+    lines.push(`Test files: ${testFiles.length - getFileCount(running)} / ${testFiles.length}`);
+    lines.push(`Duration: ${Math.floor((Date.now() - startTime) / 1000)}`);
+
+    dt.update(lines);
+  }
+
+  config.server.events.addListener('session-updated', (session) => {
+    running.splice(
+      running.findIndex((s) => s.id === session.id),
+      1,
+      session
+    );
+
+    renderTerminal();
+  });
+
+  config.server.events.addListener('session-finished', async (result) => {
+    running.splice(
+      running.findIndex((s) => s.id === result.session.id),
+      1
+    );
+
+    if (result.succeeded) {
+      succeeded.push(result);
+    } else {
+      failed.push(result);
+    }
+
+    renderTerminal();
+
+    const shouldExit = !config.watch && !config.debug && running.length === 0;
+
+    if (shouldExit) {
+      await stop();
+      process.exit(failed.length > 0 ? 1 : 0);
+    }
+  });
+
+  await config.server.start(config, sessions);
+
+  running.push(...sessions);
+  renderTerminal();
   for (const browser of browsers) {
-    browser.runTests([...testSets.values()]);
+    browser.runTests(sessions);
   }
 }
