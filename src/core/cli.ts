@@ -26,10 +26,6 @@ const commandLineOptions = [
     name: 'config',
     type: String,
   },
-  {
-    name: 'test-isolation',
-    type: Boolean,
-  },
 ];
 
 (async () => {
@@ -49,7 +45,6 @@ const commandLineOptions = [
     files: [],
     watch: false,
     debug: false,
-    testIsolation: false,
     testRunnerImport: 'web-test-runner/dist/implementations/frameworks/mocha.js',
     address: 'http://localhost',
     port: 9542,
@@ -57,6 +52,9 @@ const commandLineOptions = [
     server: createEsDevServer(),
 
     ...userConfig,
+
+    // always test isolation for now
+    testIsolation: true,
   };
 
   if ('files' in args) {
@@ -67,9 +65,6 @@ const commandLineOptions = [
   }
   if ('debug' in args) {
     config.debug = !!args.debug;
-  }
-  if ('test-isolation' in args) {
-    config.testIsolation = !!args['test-isolation'];
   }
 
   if (!config.files) {

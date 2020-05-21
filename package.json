@@ -7,7 +7,6 @@
     "build": "rm -rf dist && tsc && tsc --build tsconfig-runtime.json",
     "test": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js",
     "test:debug": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js --debug",
-    "test:isolated": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js --test-isolation",
     "test:fail": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/a.test.js",
     "test:pass": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/c.test.js",
     "test:watch": "npm run build && export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js --watch",
