@@ -177,7 +177,7 @@ export async function runTests(config: TestRunnerConfig) {
     dt.update(lines);
   }
 
-  config.server.events.addListener('session-finished', async (result) => {
+  async function onSessionFinished(result: TestSessionResult) {
     runningSessions.delete(result.id);
     results.set(result.id, result);
     renderTerminal();
@@ -188,10 +188,10 @@ export async function runTests(config: TestRunnerConfig) {
       await stop();
       process.exit(Array.from(results.values()).some((r) => !r.succeeded) ? 1 : 0);
     }
-  });
+  }
 
   const sessionsArray = Array.from(sessions.values());
-  await config.server.start(config, sessionsArray);
+  await config.server.start({ config, sessions, onSessionFinished });
 
   for (const s of sessionsArray) {
     runningSessions.add(s.id);

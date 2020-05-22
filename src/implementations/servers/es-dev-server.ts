@@ -1,21 +1,17 @@
 import { createConfig, startServer } from 'es-dev-server';
 import deepmerge from 'deepmerge';
-import { EventEmitter } from 'events';
-import path from 'path';
 import { Context, Next } from 'koa';
 import net from 'net';
 import parse from 'co-body';
 import { logger } from '../../core/logger';
 import { Server } from '../../core/Server';
 import { BrowserResult, RuntimeConfig } from '../../core/runtime/types';
-import { TestSessionResult } from '../../core/TestSessionResult';
 
 export function createEsDevServer(devServerConfig: object = {}): Server {
-  const events = new EventEmitter();
   let server: net.Server;
 
   return {
-    async start(config, sessions) {
+    async start({ config, sessions, onSessionFinished }) {
       const testRunnerImport = process.env.LOCAL_TESTING
         ? config.testRunnerImport.replace('web-test-runner', '.')
         : config.testRunnerImport;
@@ -33,7 +29,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                   if (!sessionId) return next();
                   if (!command) return next();
 
-                  const session = sessions.find((session) => session.id === sessionId);
+                  const session = sessions.get(sessionId);
                   if (!session) {
                     ctx.status = 400;
                     ctx.body = `Session id ${sessionId} not found`;
@@ -54,10 +50,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                   if (command === 'session-finished') {
                     ctx.status = 200;
                     const result = (await parse.json(ctx)) as BrowserResult;
-                    events.emit('session-finished', {
-                      id: session.id,
-                      ...result,
-                    } as TestSessionResult);
+                    onSessionFinished({ id: session.id, ...result });
                     return;
                   }
                 }
@@ -103,6 +96,5 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
     async stop() {
       await server.close();
     },
-    events,
   };
 }
