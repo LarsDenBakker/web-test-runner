@@ -1,5 +1,3 @@
-import { EventEmitter } from 'events';
-import { BrowserResult, LogMessage } from './runtime/types';
 import { TestRunnerConfig } from './TestRunnerConfig.js';
 import { TestSession } from './TestSession';
 import { TestSessionResult } from './TestSessionResult';

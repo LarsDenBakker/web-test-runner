@@ -1,13 +1,18 @@
 import { Runner, MochaOptions } from 'mocha';
 import {
   finished,
-  log,
   getConfig,
   captureConsoleOutput,
   logUncaughtErrors,
 } from '../../core/runtime/runtime';
+import {
+  LogMessage,
+  TestSuiteResult,
+  TestResultError,
+  FailedImport,
+} from '../../core/TestSessionResult';
 
-captureConsoleOutput();
+// captureConsoleOutput();
 logUncaughtErrors();
 
 (async () => {
@@ -29,35 +34,37 @@ logUncaughtErrors();
   // @ts-ignore
   await import('mocha/mocha.js');
 
-  class MyReporter extends Mocha.reporters.Base {
-    constructor(runner: Runner, options: MochaOptions) {
-      super(runner, options);
-
-      if (debug) {
-        new Mocha.reporters.html(runner, options);
-      }
-      new Mocha.reporters.spec(runner, options);
-    }
-  }
-
-  mocha.setup({ reporter: MyReporter, ui: 'bdd', color: true, allowUncaught: false });
-  let importTestFailed = false;
+  mocha.setup({ ui: 'bdd', color: true, allowUncaught: false });
+  const failedImports: FailedImport[] = [];
 
   await Promise.all(
     testFiles.map((file) =>
       import(new URL(file, document.baseURI).href).catch((error) => {
-        importTestFailed = true;
-        console.error(
-          `\x1b[31m[web-test-runner] Error loading test file: ${file}\n${error.stack}\x1b[0m`
-        );
+        failedImports.push({ file, error: { message: error.message, stack: error.stack } });
       })
     )
   );
-
   mocha.run((failures) => {
     // setTimeout to wait for logs to come in
     setTimeout(() => {
-      finished(!importTestFailed && failures === 0);
+      function mapTest(t: Mocha.Test) {
+        console.log(t);
+        return { name: t.title, error: t.err };
+      }
+
+      function mapSuite(s: Mocha.Suite): TestSuiteResult {
+        return {
+          name: s.title,
+          suites: s.suites.map(mapSuite),
+          tests: s.tests.map(mapTest),
+        };
+      }
+
+      finished({
+        succeeded: failedImports.length === 0 && failures === 0,
+        failedImports,
+        ...mapSuite(mocha.suite),
+      });
     });
   });
 })();

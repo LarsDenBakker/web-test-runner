@@ -1,9 +1,4 @@
-export type LogLevel = 'log' | 'error' | 'debug' | 'warn';
-
-export interface LogMessage {
-  level: LogLevel;
-  messages: string[];
-}
+import { TestSuiteResult, TestResult, TestResultError, FailedImport } from '../TestSessionResult';
 
 export interface RuntimeConfig {
   testFiles: string[];
@@ -12,6 +7,10 @@ export interface RuntimeConfig {
   watch: boolean;
 }
 
-export interface BrowserResult {
+export interface TestFrameworkResult {
   succeeded: boolean;
+  error?: TestResultError;
+  failedImports: FailedImport[];
+  suites: TestSuiteResult[];
+  tests: TestResult[];
 }

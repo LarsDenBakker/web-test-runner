@@ -5,7 +5,7 @@ import net from 'net';
 import parse from 'co-body';
 import { logger } from '../../core/logger';
 import { Server } from '../../core/Server';
-import { BrowserResult, RuntimeConfig } from '../../core/runtime/types';
+import { RuntimeConfig } from '../../core/runtime/types';
 
 export function createEsDevServer(devServerConfig: object = {}): Server {
   let server: net.Server;
@@ -49,7 +49,8 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
 
                   if (command === 'session-finished') {
                     ctx.status = 200;
-                    const result = (await parse.json(ctx)) as BrowserResult;
+                    // TODO: types
+                    const result = (await parse.json(ctx)) as any;
                     onSessionFinished({ id: session.id, ...result });
                     return;
                   }

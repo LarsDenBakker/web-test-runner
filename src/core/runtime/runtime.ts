@@ -1,11 +1,18 @@
-import { LogLevel, RuntimeConfig, LogMessage, BrowserResult } from './types';
+import { RuntimeConfig, TestFrameworkResult } from './types';
+import {
+  TestSessionResult,
+  TestSuiteResult,
+  LogMessage,
+  LogLevel,
+  TestResultError,
+} from '../TestSessionResult';
 
 const PARAM_SESSION_ID = 'wtr-session-id';
 
 const pendingLogs: Set<Promise<any>> = new Set();
 
 const sessionId = new URL(window.location.href).searchParams.get(PARAM_SESSION_ID);
-if (!sessionId) {
+if (typeof sessionId !== 'string') {
   throw new Error(`Could not find any session id query parameter.`);
 }
 
@@ -17,11 +24,13 @@ function postJSON(url: string, body: object) {
   });
 }
 
+const logs: LogMessage[] = [];
+
 export function captureConsoleOutput() {
   for (const level of ['log', 'error', 'debug', 'warn'] as LogLevel[]) {
     const original: Function = console[level];
     console[level] = (...args: any[]) => {
-      log({
+      logs.push({
         level,
         messages: args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : a)),
       });
@@ -47,21 +56,23 @@ export async function getConfig(): Promise<RuntimeConfig> {
     const response = await fetch(`/wtr/${sessionId}/config`);
     return response.json();
   } catch (error) {
-    await finished(false);
+    await error({ message: 'Failed to fetch session config', stack: error.stack });
     throw error;
   }
 }
 
-export async function log(log: LogMessage) {
-  // const logPromise = postJSON(`/wtr/${sessionId}/log`, log);
-  // logPromise.then(() => {
-  //   pendingLogs.delete(logPromise);
-  // });
-  // pendingLogs.add(logPromise);
-  // return logPromise;
+export function error(error: TestResultError) {
+  return finished({
+    succeeded: false,
+    error,
+    failedImports: [],
+    suites: [],
+    tests: [],
+  });
 }
 
-export async function finished(succeeded: boolean): Promise<void> {
+export async function finished(result: TestFrameworkResult): Promise<void> {
+  const sessionResult: TestSessionResult = { id: sessionId as string, logs, ...result };
   await Promise.all(Array.from(pendingLogs)).catch(() => {});
-  await postJSON(`/wtr/${sessionId}/session-finished`, { succeeded } as BrowserResult);
+  await postJSON(`/wtr/${sessionId}/session-finished`, sessionResult);
 }
