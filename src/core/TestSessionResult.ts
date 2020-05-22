@@ -15,6 +15,8 @@ export interface LogMessage {
 export interface TestResultError {
   message: string;
   stack?: string;
+  expected?: string;
+  actual?: string;
 }
 
 export interface TestResult {

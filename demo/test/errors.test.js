@@ -6,7 +6,14 @@ describe('test a', () => {
   });
 
   it('deep diff', () => {
-    expect({ a: '1', b: '2', c: '3', d: '4', e: '5', f: '6' }).to.equal({ b: '2' });
+    expect({ a: '1', b: '2', c: '3', d: '4', e: '5', f: '6' }).to.equal(
+      { b: '2' },
+      'custom assertion msg'
+    );
+  });
+
+  it('typeof', () => {
+    expect('myString').to.be.a('object');
   });
 
   for (let i = 0; i < 5; i += 1) {

@@ -12,7 +12,7 @@ import {
   FailedImport,
 } from '../../core/TestSessionResult';
 
-// captureConsoleOutput();
+captureConsoleOutput();
 logUncaughtErrors();
 
 (async () => {
@@ -34,7 +34,7 @@ logUncaughtErrors();
   // @ts-ignore
   await import('mocha/mocha.js');
 
-  mocha.setup({ ui: 'bdd', color: true, allowUncaught: false });
+  mocha.setup({ ui: 'bdd', allowUncaught: false });
   const failedImports: FailedImport[] = [];
 
   await Promise.all(
@@ -48,8 +48,13 @@ logUncaughtErrors();
     // setTimeout to wait for logs to come in
     setTimeout(() => {
       function mapTest(t: Mocha.Test) {
-        console.log(t);
-        return { name: t.title, error: t.err };
+        const err = t.err as Error & { actual?: string; expected?: string };
+        return {
+          name: t.title,
+          error: err
+            ? { message: err.message, stack: err.stack, expected: err.expected, actual: err.actual }
+            : undefined,
+        };
       }
 
       function mapSuite(s: Mocha.Suite): TestSuiteResult {

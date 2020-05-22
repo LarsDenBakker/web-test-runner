@@ -1,26 +1,15 @@
 import globby from 'globby';
 import { v4 as uuid } from 'uuid';
-import { DynamicTerminal, ILine, SPINNER } from 'dynamic-terminal';
-import { TestRunnerConfig } from './TestRunnerConfig';
-import { logger } from './logger';
-import { TestSession } from './TestSession';
 import {
   TestSessionResult,
   TestSuiteResult,
   TestResultError,
   TestResult,
 } from './TestSessionResult';
-
-function renderStatus(status?: boolean) {
-  switch (status) {
-    case true:
-      return '✓';
-    case false:
-      return '✘';
-    default:
-      return SPINNER;
-  }
-}
+import { DynamicTerminal } from 'dynamic-terminal';
+import { TestRunnerConfig } from './TestRunnerConfig';
+import { TestSession } from './TestSession';
+import { updateTestReport } from './test-reporter';
 
 async function collectTestFiles(patterns: string | string[]) {
   const testFiles: string[] = [];
@@ -30,12 +19,6 @@ async function collectTestFiles(patterns: string | string[]) {
 
   return testFiles.map((f) => f);
 }
-
-const getFileCount = (sessions: TestSession[]) =>
-  sessions.reduce((total, s) => total + s.testFiles.length, 0);
-
-const getTestCount = (suite: TestSuiteResult): number =>
-  suite.tests.length + suite.suites.reduce((all, suite) => all + getTestCount(suite), 0);
 
 function createTestSessions(browserNames: string[], testFiles: string[], testIsolation: boolean) {
   const sessions = new Map<string, TestSession>();
@@ -75,16 +58,12 @@ function createTestSessions(browserNames: string[], testFiles: string[], testIso
   return { sessions, sessionGroups };
 }
 
-function formatError(error: TestResultError) {
-  return `${error.message}:${error.stack ? `\n\n${error.stack}` : ''}`;
-}
-
 export async function runTests(config: TestRunnerConfig) {
   const browsers = Array.isArray(config.browsers) ? config.browsers : [config.browsers];
   const testFiles = await collectTestFiles(config.files);
 
-  const dt = new DynamicTerminal();
-  await dt.start();
+  const terminal = new DynamicTerminal();
+  await terminal.start();
 
   let stopped = false;
 
@@ -94,7 +73,7 @@ export async function runTests(config: TestRunnerConfig) {
     }
     stopped = true;
     const tasks: Promise<any>[] = [];
-    tasks.push(dt.stop(true));
+    tasks.push(terminal.stop(true));
     tasks.push(
       config.server.stop().catch((error) => {
         console.error(error);
@@ -122,12 +101,12 @@ export async function runTests(config: TestRunnerConfig) {
   });
 
   if (testFiles.length === 0) {
-    logger.error(`Could not find any files with pattern(s): ${config.files}`);
+    console.error(`Could not find any files with pattern(s): ${config.files}`);
     process.exit(1);
   }
 
   if (config.testIsolation && config.debug && testFiles.length !== 1) {
-    logger.error('Cannot debug one than more test file when test isolation is enabled');
+    console.error('Cannot debug one than more test file when test isolation is enabled');
     process.exit(1);
   }
 
@@ -151,101 +130,22 @@ export async function runTests(config: TestRunnerConfig) {
   const runningSessions = new Set<string>();
   const startTime = Date.now();
 
-  renderTerminal();
-
-  function renderTerminal() {
-    const lines: ILine[] = [];
-
-    let finishedFileCount = 0;
-
-    lines.push({ text: '' });
-    lines.push({ text: 'Tests:' });
-    lines.push({ text: '' });
-    for (const [group, sessionIdsForGroup] of sessionGroups) {
-      const resultsForGroup = resultsByGroup.get(group) || [];
-      const someRunning = sessionIdsForGroup.some((id) => runningSessions.has(id));
-
-      const status = someRunning ? undefined : resultsForGroup.every((r) => r.succeeded);
-      if (!someRunning) {
-        finishedFileCount += 1;
-      }
-
-      lines.push({ text: `${renderStatus(status)} ${group}` });
-    }
-
-    if (failedResults.length > 0) {
-      lines.push({ text: '' });
-      lines.push({ text: 'Failed tests:' });
-      lines.push({ text: '' });
-
-      for (const [group, results] of resultsByGroup) {
-        const failedForGroup = results.filter((r) => !r.succeeded);
-        if (failedForGroup.length > 0) {
-          const result = failedForGroup[0];
-
-          const failedBrowsers = failedForGroup.map((f) => sessions.get(f.id)!.browserName);
-          lines.push({
-            text: `${group}${
-              failedBrowsers.length > 1 ? ` Failed on: ${failedBrowsers.join(', ')}` : ''
-            }`,
-          });
-
-          if (result.error) {
-            lines.push({ text: 'General error:', indent: 2 });
-            lines.push({ text: formatError(result.error), indent: 4 });
-            lines.push({ text: '' });
-          }
-
-          if (result.failedImports.length > 0) {
-            lines.push({ text: 'Failed to load test file:', indent: 2 });
-
-            for (const { file, error } of result.failedImports) {
-              if (file !== group) {
-                lines.push({ text: `${file}:`, indent: 4 });
-              }
-              lines.push({ text: error.stack, indent: 4 });
-              lines.push({ text: '' });
-            }
-          }
-
-          if (result.logs.length > 0) {
-            lines.push({ text: 'Browser logs:', indent: 2 });
-
-            for (const log of result.logs) {
-              lines.push({ text: log.messages.join(' '), indent: 4 });
-            }
-
-            lines.push({ text: '' });
-          }
-
-          let testNamePrefix = '';
-          function renderTestErrors(tests: TestResult[]) {
-            for (const test of tests) {
-              if (test.error) {
-                lines.push({ text: `${testNamePrefix}${test.name}`, indent: 2 });
-                lines.push({ text: formatError(test.error), indent: 4 });
-                lines.push({ text: '' });
-              }
-            }
-          }
-          renderTestErrors(result.tests);
-
-          for (const suite of result.suites) {
-            testNamePrefix += `${suite.name} > `;
-            renderTestErrors(suite.tests);
-          }
-        }
-      }
-    }
-
-    lines.push({ text: '' });
-    lines.push({ text: `Test files: ${finishedFileCount}/${testFiles.length}` });
-    lines.push({ text: `Browers: ${browserNames.join(', ')}` });
-    lines.push({ text: `Duration: ${Math.floor((Date.now() - startTime) / 1000)}s` });
-    lines.push({ text: '' });
-
-    dt.update(lines);
+  function updateReport() {
+    updateTestReport({
+      terminal,
+      browserNames,
+      testFiles,
+      sessions,
+      sessionGroups,
+      succeededResults,
+      failedResults,
+      resultsByGroup,
+      runningSessions,
+      startTime,
+    });
   }
+
+  updateReport();
 
   async function onSessionFinished(result: TestSessionResult) {
     runningSessions.delete(result.id);
@@ -263,7 +163,7 @@ export async function runTests(config: TestRunnerConfig) {
     }
     resultsForGroup.push(result);
 
-    renderTerminal();
+    updateReport();
 
     const shouldExit = !config.watch && !config.debug && runningSessions.size === 0;
     if (shouldExit) {
@@ -279,7 +179,7 @@ export async function runTests(config: TestRunnerConfig) {
     runningSessions.add(s.id);
   }
 
-  renderTerminal();
+  updateReport();
   for (const browser of browsers) {
     browser.runTests(sessionsArray);
   }

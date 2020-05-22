@@ -3,7 +3,6 @@ import deepmerge from 'deepmerge';
 import { Context, Next } from 'koa';
 import net from 'net';
 import parse from 'co-body';
-import { logger } from '../../core/logger';
 import { Server } from '../../core/Server';
 import { RuntimeConfig } from '../../core/runtime/types';
 
@@ -33,7 +32,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                   if (!session) {
                     ctx.status = 400;
                     ctx.body = `Session id ${sessionId} not found`;
-                    logger.error(ctx.body);
+                    console.error(ctx.body);
                     return;
                   }
 
