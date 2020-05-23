@@ -1,11 +1,5 @@
 import { RuntimeConfig, TestFrameworkResult, BrowserSessionResult } from './types';
-import {
-  TestSessionResult,
-  TestSuiteResult,
-  LogMessage,
-  LogLevel,
-  TestResultError,
-} from '../TestSessionResult';
+import { TestSessionResult, TestSuiteResult, TestResultError } from '../TestSessionResult';
 
 const PARAM_SESSION_ID = 'wtr-session-id';
 
@@ -24,16 +18,13 @@ function postJSON(url: string, body: object) {
   });
 }
 
-const logs: LogMessage[] = [];
+const logs: string[] = [];
 
 export function captureConsoleOutput() {
-  for (const level of ['log', 'error', 'debug', 'warn'] as LogLevel[]) {
+  for (const level of ['log', 'error', 'debug', 'warn'] as (keyof Console)[]) {
     const original: Function = console[level];
     console[level] = (...args: any[]) => {
-      logs.push({
-        level,
-        messages: args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : a)),
-      });
+      logs.push(args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' '));
       original.apply(console, args);
     };
   }

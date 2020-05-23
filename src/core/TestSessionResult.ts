@@ -1,15 +1,8 @@
 import { TestSession } from './TestSession';
 
-export type LogLevel = 'log' | 'error' | 'debug' | 'warn';
-
 export interface FailedImport {
   file: string;
   error: TestResultError;
-}
-
-export interface LogMessage {
-  level: LogLevel;
-  messages: string[];
 }
 
 export interface TestResultError {
@@ -34,7 +27,7 @@ export interface TestSessionResult {
   session: TestSession;
   succeeded: boolean;
   error?: TestResultError;
-  logs: LogMessage[];
+  logs: string[];
   failedImports: FailedImport[];
   suites: TestSuiteResult[];
   tests: TestResult[];

@@ -75,7 +75,7 @@ class TerminalLogger {
     if (entries.length === 0) {
       return;
     }
-    console.log(buildLogString(entries, this.serverAddress));
+    console.log(buildLogString(entries, this.serverAddress!));
   }
 
   renderDynamic(entries: TerminalEntry[]) {
@@ -84,7 +84,7 @@ class TerminalLogger {
     }
 
     this.previousDynamic = entries;
-    logUpdate(buildLogString(entries, this.serverAddress));
+    logUpdate(buildLogString(entries, this.serverAddress!));
   }
 
   rerenderDynamic() {

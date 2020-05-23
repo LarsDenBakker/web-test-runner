@@ -1,16 +1,10 @@
-import { Runner, MochaOptions } from 'mocha';
 import {
   finished,
   getConfig,
   captureConsoleOutput,
   logUncaughtErrors,
 } from '../../core/runtime/runtime';
-import {
-  LogMessage,
-  TestSuiteResult,
-  TestResultError,
-  FailedImport,
-} from '../../core/TestSessionResult';
+import { TestSuiteResult, FailedImport } from '../../core/TestSessionResult';
 
 captureConsoleOutput();
 logUncaughtErrors();

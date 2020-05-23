@@ -87,28 +87,20 @@ export function logFileErrors(
     entries.push({ text: renderError(failedImport.error), indent: 2 });
   }
 
-  // TODO: Browser logs
-  // if (result.logs.length > 0) {
-  //   errorLogs.push({ text: 'Browser logs:', indent: 2 });
+  const errorsByTestAndBrowser = new Map<string, Map<string, TestResultError>>();
+  const commonLogs: string[] = [];
+  const logsByBrowser = new Map<string, string[]>();
 
-  //   for (const log of result.logs) {
-  //     errorLogs.push({ text: log.messages.join(' '), indent: 4 });
-  //   }
-
-  //   errorLogs.push('');
-  // }
-
-  const errorsByTest = new Map<string, Map<string, TestResultError>>();
-
+  const allFailedLogs = failedResults.map((r) => r.logs);
   for (const result of failedResults) {
     function handleTests(prefix: string, tests: TestResult[]) {
       for (const test of tests) {
         if (test.error) {
           const name = `${prefix}${test.name}`;
-          let errorsForTest = errorsByTest.get(name);
+          let errorsForTest = errorsByTestAndBrowser.get(name);
           if (!errorsForTest) {
             errorsForTest = new Map<string, TestResultError>();
-            errorsByTest.set(name, errorsForTest);
+            errorsByTestAndBrowser.set(name, errorsForTest);
           }
           errorsForTest.set(result.session.browserName, test.error);
         }
@@ -126,10 +118,25 @@ export function logFileErrors(
     }
 
     handleSuite('', result);
+
+    for (const log of result.logs) {
+      if (!commonLogs.includes(log)) {
+        if (allFailedLogs.every((logs) => logs.includes(log))) {
+          commonLogs.push(log);
+        } else {
+          let logsForBrowser = logsByBrowser.get(result.session.browserName);
+          if (!logsForBrowser) {
+            logsForBrowser = [];
+            logsByBrowser.set(result.session.browserName, logsForBrowser);
+          }
+          logsForBrowser.push(log);
+        }
+      }
+    }
   }
 
-  if (errorsByTest.size > 0) {
-    for (const [name, errorByBrowser] of errorsByTest) {
+  if (errorsByTestAndBrowser.size > 0) {
+    for (const [name, errorByBrowser] of errorsByTestAndBrowser) {
       const failedBrowsers = Array.from(errorByBrowser.keys());
       const favoriteError =
         errorByBrowser.get(favoriteBrowser) ?? errorByBrowser.get(failedBrowsers[0])!;
@@ -138,6 +145,20 @@ export function logFileErrors(
       entries.push({ text: `${name}${failedOn}`, indent: 2 });
       entries.push({ text: renderError(favoriteError), indent: 4 });
       entries.push('');
+    }
+  }
+
+  if (commonLogs.length > 0) {
+    entries.push({ text: 'Browser logs:', indent: 2 });
+    for (const log of commonLogs) {
+      entries.push({ text: log, indent: 4 });
+    }
+  }
+
+  for (const [browser, logs] of logsByBrowser) {
+    entries.push({ text: `${browser} logs:`, indent: 2 });
+    for (const log of logs) {
+      entries.push({ text: log, indent: 4 });
     }
   }
 

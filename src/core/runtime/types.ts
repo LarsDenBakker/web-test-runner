@@ -1,4 +1,4 @@
-import { TestSuiteResult, TestResult, TestResultError, FailedImport, LogMessage } from '../TestSessionResult';
+import { TestSuiteResult, TestResult, TestResultError, FailedImport } from '../TestSessionResult';
 
 export interface RuntimeConfig {
   testFiles: string[];
@@ -16,5 +16,5 @@ export interface TestFrameworkResult {
 }
 
 export interface BrowserSessionResult extends TestFrameworkResult {
-  logs: LogMessage[];
+  logs: string[];
 }
