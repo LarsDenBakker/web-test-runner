@@ -31,7 +31,7 @@ export interface TestSuiteResult {
 }
 
 export interface TestSessionResult {
-  id: string;
+  session: TestSession;
   succeeded: boolean;
   error?: TestResultError;
   logs: LogMessage[];

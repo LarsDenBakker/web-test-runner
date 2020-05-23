@@ -1,9 +1,9 @@
 import { expect } from '@bundled-es-modules/chai';
 
 describe('test b', () => {
-  // it('undefined is a function', () => {
-  //   expect(undefined).to.be.a('function');
-  // });
+  it('undefined is a function', () => {
+    expect(undefined).to.be.a('function');
+  });
 
   it('true equals true', () => {
     expect(true).to.equal(true);
@@ -17,7 +17,7 @@ describe('test b', () => {
 
   for (let i = 0; i < 5; i += 1) {
     it(`test ${i}`, async () => {
-      await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 200) + 200));
+      await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 1000) + 1000));
     });
   }
 });

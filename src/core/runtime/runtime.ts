@@ -1,4 +1,4 @@
-import { RuntimeConfig, TestFrameworkResult } from './types';
+import { RuntimeConfig, TestFrameworkResult, BrowserSessionResult } from './types';
 import {
   TestSessionResult,
   TestSuiteResult,
@@ -72,7 +72,7 @@ export function error(error: TestResultError) {
 }
 
 export async function finished(result: TestFrameworkResult): Promise<void> {
-  const sessionResult: TestSessionResult = { id: sessionId as string, logs, ...result };
+  const sessionResult: BrowserSessionResult = { logs, ...result };
   await Promise.all(Array.from(pendingLogs)).catch(() => {});
   await postJSON(`/wtr/${sessionId}/session-finished`, sessionResult);
 }

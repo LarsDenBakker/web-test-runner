@@ -16,6 +16,18 @@ describe('test a', () => {
     expect('myString').to.be.a('object');
   });
 
+  it('only fails on safari', () => {
+    if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {
+      throw new Error('This should fail on safari');
+    }
+  });
+
+  it('only passes on chrome', () => {
+    if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent) || navigator.userAgent.toLowerCase().includes('firefox')) {
+      throw new Error('This should fail on non-chrome');
+    }
+  });
+
   for (let i = 0; i < 5; i += 1) {
     it(`test ${i}`, async () => {
       await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 400) + 400));
