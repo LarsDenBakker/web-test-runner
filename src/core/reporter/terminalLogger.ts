@@ -7,7 +7,7 @@ export interface IndentedTerminalEntry {
   indent: number;
 }
 
-function buildLogString(entries: TerminalEntry[]) {
+function buildLogString(entries: TerminalEntry[], serverAddress: RegExp) {
   let str = '';
 
   for (const entry of entries) {
@@ -23,7 +23,7 @@ function buildLogString(entries: TerminalEntry[]) {
     }
 
     for (const string of stringsToAdd) {
-      str += `${' '.repeat(indent)}${string}\n`;
+      str += `${' '.repeat(indent)}${string.replace(serverAddress, '')}\n`;
     }
   }
 
@@ -34,8 +34,13 @@ class TerminalLogger {
   private originalFunctions: Partial<Record<keyof Console, Function>> = {};
   private previousDynamic: TerminalEntry[] = [];
   private started = false;
+  private serverAddress?: RegExp;
 
-  start() {
+  start(serverAddress: string) {
+    this.serverAddress = new RegExp(serverAddress, 'g');
+    // start off with an empty line
+    console.log('');
+
     for (const key of Object.keys(console) as (keyof Console)[]) {
       if (typeof console[key] === 'function') {
         this.originalFunctions[key] = console[key];
@@ -70,7 +75,7 @@ class TerminalLogger {
     if (entries.length === 0) {
       return;
     }
-    console.log(buildLogString(entries));
+    console.log(buildLogString(entries, this.serverAddress));
   }
 
   renderDynamic(entries: TerminalEntry[]) {
@@ -79,7 +84,7 @@ class TerminalLogger {
     }
 
     this.previousDynamic = entries;
-    logUpdate(buildLogString(entries));
+    logUpdate(buildLogString(entries, this.serverAddress));
   }
 
   rerenderDynamic() {

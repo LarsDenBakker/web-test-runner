@@ -13,7 +13,7 @@ export function puppeteerLauncher(): BrowserLauncher {
       config = _config;
       browser = await launch({ devtools: config.debug });
       serverAddress = `${config.address}:${config.port}/`;
-      return ['chrome'];
+      return ['Chrome'];
     },
 
     async stop() {

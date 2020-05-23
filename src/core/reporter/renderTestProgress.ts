@@ -1,11 +1,13 @@
 import chalk from 'chalk';
 import { TestSessionResult, TestSuiteResult, TestResult } from '../TestSessionResult';
 import { TerminalEntry, terminalLogger } from './terminalLogger';
+import { TestSession } from '../TestSession';
 
 export interface TestProgressArgs {
   browserNames: string[];
   testFiles: string[];
   resultsByBrowser: Map<string, TestSessionResult[]>;
+  runningSessions: Set<string>;
   startTime: number;
 }
 
@@ -81,11 +83,17 @@ function getSucceededAndFailed({
 }
 
 export function renderTestProgress(args: TestProgressArgs) {
-  const { browserNames, testFiles, resultsByBrowser, startTime } = args;
+  const { browserNames, testFiles, resultsByBrowser, runningSessions, startTime } = args;
 
   const entries: TerminalEntry[] = [];
 
-  entries.push('Browsers:');
+  if (runningSessions.size > 0 || resultsByBrowser.size === 0) {
+    entries.push(chalk.bold('Running tests:'));
+  } else {
+    entries.push(chalk.bold('Finished running tests!'));
+  }
+  entries.push('');
+
   const longestBrowserLength = browserNames.sort((a, b) => b.length - a.length)[0].length + 1;
   for (const browser of browserNames) {
     const results = resultsByBrowser.get(browser);
@@ -105,12 +113,10 @@ export function renderTestProgress(args: TestProgressArgs) {
       `${totalFailed} failed`
     )}`;
 
-    entries.push({
-      text: `${`${browser}:`.padEnd(longestBrowserLength)} ${progressBar} | ${testResults}`,
-      indent: 2,
-    });
+    entries.push(`${`${browser}:`.padEnd(longestBrowserLength)} ${progressBar} | ${testResults}`);
   }
 
+  entries.push('');
   entries.push(`Duration: ${Math.floor((Date.now() - startTime) / 1000)}s`);
   entries.push('');
 

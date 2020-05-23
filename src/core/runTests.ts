@@ -105,6 +105,7 @@ export async function runTests(config: TestRunnerConfig) {
     browserNames.push(...names);
   }
 
+  const serverAddress = `${config.address}:${config.port}/`;
   const favoriteBrowser =
     browserNames.find(
       (n) => n.includes('chrome') || n.includes('chromium') || n.includes('firefox')
@@ -122,12 +123,12 @@ export async function runTests(config: TestRunnerConfig) {
       browserNames,
       testFiles,
       resultsByBrowser,
+      runningSessions,
       startTime,
     });
   }
 
-  terminalLogger.start();
-  console.log('');
+  terminalLogger.start(serverAddress);
 
   const updateProgressInterval = setInterval(() => {
     updateProgress();

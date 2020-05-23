@@ -28,18 +28,21 @@ export function playwrightLauncher({
     async start(_config) {
       config = _config;
       serverAddress = `${config.address}:${config.port}/`;
+      const browserNames: string[] = [];
 
-      for (const browserType of browserTypes) {
+      for (const type of browserTypes) {
+        const name = `${type[0].toUpperCase()}${type.substring(1)}`;
+        browserNames.push(name);
         const options: playwright.LaunchOptions =
-          browserType === 'chromium'
+          type === 'chromium'
             ? { devtools: config.debug }
             : // firefox and safari don't support devtools option
               { headless: !config.debug };
-        const browser = await playwright[browserType].launch(options);
-        browsers.set(browserType, browser);
+        const browser = await playwright[type].launch(options);
+        browsers.set(name, browser);
       }
 
-      return browserTypes;
+      return browserNames;
     },
 
     async stop() {
