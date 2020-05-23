@@ -107,9 +107,10 @@ export async function runTests(config: TestRunnerConfig) {
 
   const serverAddress = `${config.address}:${config.port}/`;
   const favoriteBrowser =
-    browserNames.find(
-      (n) => n.includes('chrome') || n.includes('chromium') || n.includes('firefox')
-    ) ?? browserNames[0];
+    browserNames.find((browserName) => {
+      const n = browserName.toLowerCase();
+      return n.includes('chrome') || n.includes('chromium') || n.includes('firefox');
+    }) ?? browserNames[0];
   const sessions = createTestSessions(browserNames, testFiles, !!config.testIsolation);
   const succeededResults: TestSessionResult[] = [];
   const failedResults: TestSessionResult[] = [];
