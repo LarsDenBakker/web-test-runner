@@ -121,8 +121,6 @@ export async function runTests(config: TestRunnerConfig) {
     renderTestProgress({
       browserNames,
       testFiles,
-      succeededResults,
-      failedResults,
       resultsByBrowser,
       startTime,
     });
