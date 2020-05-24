@@ -47,6 +47,11 @@ class TerminalLogger {
 
         console[key] = new Proxy(console[key], {
           apply: (target, thisArg, argArray) => {
+            // TODO: Remove this when fixed in EDS
+            if (argArray.some((arg: unknown) => typeof arg === 'string' && arg.startsWith('[BABEL]'))) {
+              return;
+            }
+
             // when a console function is called, clear dynamic logs
             logUpdate.clear();
 
