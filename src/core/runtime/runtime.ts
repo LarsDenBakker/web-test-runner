@@ -53,7 +53,7 @@ export async function getConfig(): Promise<RuntimeConfig> {
 }
 
 export function error(error: TestResultError) {
-  return finished({
+  return sessionFinished({
     succeeded: false,
     error,
     failedImports: [],
@@ -62,7 +62,11 @@ export function error(error: TestResultError) {
   });
 }
 
-export async function finished(result: TestFrameworkResult): Promise<void> {
+export async function sessionStarted() {
+  await fetch(`/wtr/${sessionId}/session-started`, { method: 'POST' });
+}
+
+export async function sessionFinished(result: TestFrameworkResult): Promise<void> {
   const sessionResult: BrowserSessionResult = { logs, ...result };
   await Promise.all(Array.from(pendingLogs)).catch(() => {});
   await postJSON(`/wtr/${sessionId}/session-finished`, sessionResult);

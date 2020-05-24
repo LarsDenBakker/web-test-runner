@@ -1,5 +1,3 @@
-import { TestSession } from './TestSession';
-
 export interface FailedImport {
   file: string;
   error: TestResultError;
@@ -24,7 +22,6 @@ export interface TestSuiteResult {
 }
 
 export interface TestSessionResult {
-  session: TestSession;
   succeeded: boolean;
   error?: TestResultError;
   logs: string[];

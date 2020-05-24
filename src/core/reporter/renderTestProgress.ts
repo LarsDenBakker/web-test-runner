@@ -1,12 +1,14 @@
 import chalk from 'chalk';
 import { TestSessionResult, TestSuiteResult, TestResult } from '../TestSessionResult';
 import { TerminalEntry, terminalLogger } from './terminalLogger';
-import { TestSession } from '../TestSession';
+import { TestSession, SessionStatuses } from '../TestSession';
+import { TestRunnerConfig } from '../TestRunnerConfig';
 
 export interface TestProgressArgs {
   browserNames: string[];
   testFiles: string[];
-  resultsByBrowser: Map<string, TestSessionResult[]>;
+  sessionsByBrowser: Map<string, TestSession[]>;
+  initializingSessions: Set<string>;
   runningSessions: Set<string>;
   startTime: number;
 }
@@ -82,32 +84,43 @@ function getSucceededAndFailed({
   return { failed, succeeded };
 }
 
-export function renderTestProgress(args: TestProgressArgs) {
-  const { browserNames, testFiles, resultsByBrowser, runningSessions, startTime } = args;
+export function renderTestProgress(config: TestRunnerConfig, args: TestProgressArgs) {
+  const {
+    browserNames,
+    testFiles,
+    sessionsByBrowser,
+    initializingSessions,
+    runningSessions,
+    startTime,
+  } = args;
 
   const entries: TerminalEntry[] = [];
-
-  if (runningSessions.size > 0 || resultsByBrowser.size === 0) {
-    entries.push(chalk.bold('Running tests:'));
-  } else {
+  if (initializingSessions.size === 0 && runningSessions.size === 0) {
     entries.push(chalk.bold('Finished running tests!'));
+  } else {
+    entries.push(chalk.bold('Running tests:'));
   }
   entries.push('');
 
   const longestBrowserLength = browserNames.sort((a, b) => b.length - a.length)[0].length + 1;
   for (const browser of browserNames) {
-    const results = resultsByBrowser.get(browser);
-    const finished = results ? results.reduce((all, r) => all + r.session.testFiles.length, 0) : 0;
+    const sessions = sessionsByBrowser.get(browser)!;
+    const finished = sessions.reduce(
+      (all, s) => (s.status === SessionStatuses.FINISHED ? all + s.testFiles.length : 0),
+      0
+    );
     const progressBar = `${renderProgressBar(finished, testFiles.length)} ${finished}/${
       testFiles.length
     } test files`;
 
     let totalSucceeded = 0;
     let totalFailed = 0;
-    for (const result of results ?? []) {
-      const total = getSucceededAndFailed(result);
-      totalSucceeded += total.succeeded;
-      totalFailed += total.failed;
+    for (const session of sessions) {
+      if (session.result) {
+        const total = getSucceededAndFailed(session.result);
+        totalSucceeded += total.succeeded;
+        totalFailed += total.failed;
+      }
     }
     const testResults = `${chalk.green(`${totalSucceeded} passed`)}, ${chalk.red(
       `${totalFailed} failed`
@@ -117,8 +130,10 @@ export function renderTestProgress(args: TestProgressArgs) {
   }
 
   entries.push('');
-  entries.push(`Duration: ${Math.floor((Date.now() - startTime) / 1000)}s`);
-  entries.push('');
+  if (!config.watch && !config.debug) {
+    entries.push(`Duration: ${Math.floor((Date.now() - startTime) / 1000)}s`);
+    entries.push('');
+  }
 
   terminalLogger.renderDynamic(entries);
 }

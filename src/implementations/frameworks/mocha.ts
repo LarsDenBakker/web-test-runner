@@ -1,8 +1,9 @@
 import {
-  finished,
+  sessionFinished,
   getConfig,
   captureConsoleOutput,
   logUncaughtErrors,
+  sessionStarted,
 } from '../../core/runtime/runtime';
 import { TestSuiteResult, FailedImport } from '../../core/TestSessionResult';
 
@@ -10,6 +11,7 @@ captureConsoleOutput();
 logUncaughtErrors();
 
 (async () => {
+  sessionStarted();
   const { testFiles, debug } = await getConfig();
 
   const div = document.createElement('div');
@@ -25,6 +27,7 @@ logUncaughtErrors();
 
   // Import mocha here, so that we can capture it's console output
   // TS gives a warning for dynamically importing mocha with a bare import
+  // TODO: This is probably no longer needed?
   // @ts-ignore
   await import('mocha/mocha.js');
 
@@ -38,6 +41,7 @@ logUncaughtErrors();
       })
     )
   );
+
   mocha.run((failures) => {
     // setTimeout to wait for logs to come in
     setTimeout(() => {
@@ -59,7 +63,7 @@ logUncaughtErrors();
         };
       }
 
-      finished({
+      sessionFinished({
         succeeded: failedImports.length === 0 && failures === 0,
         failedImports,
         ...mapSuite(mocha.suite),

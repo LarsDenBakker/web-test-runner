@@ -7,6 +7,7 @@ import {
   TestResult,
 } from '../TestSessionResult';
 import { TerminalEntry, terminalLogger } from './terminalLogger';
+import { TestSession } from '../TestSession';
 
 function renderDiff(actual: string, expected: string) {
   function cleanUp(line: string) {
@@ -62,7 +63,7 @@ export function logFileErrors(
   testFile: string,
   allBrowserNames: string[],
   favoriteBrowser: string,
-  failedResults: TestSessionResult[]
+  failedSessions: TestSession[]
 ) {
   if (handledFiles.has(testFile)) {
     return;
@@ -72,16 +73,16 @@ export function logFileErrors(
 
   entries.push(`${chalk.underline(testFile)}`);
 
-  const resultsThatFailedToImport = failedResults.filter((r) =>
-    r.failedImports.some((imp) => imp.file === testFile)
+  const sessionsThatFailedToImport = failedSessions.filter((s) =>
+    s.result!.failedImports.some((imp) => imp.file === testFile)
   );
 
-  if (resultsThatFailedToImport.length > 0) {
-    const result =
-      resultsThatFailedToImport.find((r) => r.session.browserName === favoriteBrowser) ||
-      resultsThatFailedToImport[0];
-    const failedImport = result.failedImports.find((i) => i.file === testFile)!;
-    const failedBrowsers = resultsThatFailedToImport.map((r) => r.session.browserName);
+  if (sessionsThatFailedToImport.length > 0) {
+    const sesion =
+      sessionsThatFailedToImport.find((s) => s.browserName === favoriteBrowser) ||
+      sessionsThatFailedToImport[0];
+    const failedImport = sesion.result!.failedImports.find((i) => i.file === testFile)!;
+    const failedBrowsers = sessionsThatFailedToImport.map((s) => s.browserName);
     const failedOn = createFailedOnBrowsers(allBrowserNames, failedBrowsers);
     entries.push({ text: `Failed to load test file${failedOn}`, indent: 2 });
     entries.push({ text: renderError(failedImport.error), indent: 2 });
@@ -91,8 +92,8 @@ export function logFileErrors(
   const commonLogs: string[] = [];
   const logsByBrowser = new Map<string, string[]>();
 
-  const allFailedLogs = failedResults.map((r) => r.logs);
-  for (const result of failedResults) {
+  const allFailedLogs = failedSessions.map((s) => s.result!.logs);
+  for (const session of failedSessions) {
     function handleTests(prefix: string, tests: TestResult[]) {
       for (const test of tests) {
         if (test.error) {
@@ -102,7 +103,7 @@ export function logFileErrors(
             errorsForTest = new Map<string, TestResultError>();
             errorsByTestAndBrowser.set(name, errorsForTest);
           }
-          errorsForTest.set(result.session.browserName, test.error);
+          errorsForTest.set(session.browserName, test.error);
         }
       }
     }
@@ -117,17 +118,17 @@ export function logFileErrors(
       }
     }
 
-    handleSuite('', result);
+    handleSuite('', session.result!);
 
-    for (const log of result.logs) {
+    for (const log of session.result!.logs) {
       if (!commonLogs.includes(log)) {
         if (allFailedLogs.every((logs) => logs.includes(log))) {
           commonLogs.push(log);
         } else {
-          let logsForBrowser = logsByBrowser.get(result.session.browserName);
+          let logsForBrowser = logsByBrowser.get(session.browserName);
           if (!logsForBrowser) {
             logsForBrowser = [];
-            logsByBrowser.set(result.session.browserName, logsForBrowser);
+            logsByBrowser.set(session.browserName, logsForBrowser);
           }
           logsForBrowser.push(log);
         }

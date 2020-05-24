@@ -14,7 +14,7 @@ describe('test a', () => {
 
   it('typeof', () => {
     expect('myString').to.be.a('object');
-  });
+  }); 
 
   it('only fails on safari', () => {
     if (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) {

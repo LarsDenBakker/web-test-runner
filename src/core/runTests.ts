@@ -2,11 +2,12 @@ import globby from 'globby';
 import { v4 as uuid } from 'uuid';
 import { TestSessionResult } from './TestSessionResult';
 import { TestRunnerConfig } from './TestRunnerConfig';
-import { TestSession } from './TestSession';
+import { TestSession, SessionStatuses } from './TestSession';
 import { terminalLogger } from './reporter/terminalLogger';
 import { renderTestProgress } from './reporter/renderTestProgress';
 import { logFileErrors } from './reporter/logFileErrors';
 import { logGeneralErrors } from './reporter/logGeneralErrors';
+import { replaceOrAddInMappedArray, removeFromMappedArray } from './utils';
 
 async function collectTestFiles(patterns: string | string[]) {
   const testFiles: string[] = [];
@@ -28,6 +29,7 @@ function createTestSessions(browserNames: string[], testFiles: string[], testIso
         id: uuid(),
         group,
         browserName,
+        status: SessionStatuses.INITIALIZING,
         testFiles: [testFile],
       }));
 
@@ -41,7 +43,7 @@ function createTestSessions(browserNames: string[], testFiles: string[], testIso
       const group = browserName;
       const id = uuid();
 
-      sessions.set(id, { id, browserName, testFiles });
+      sessions.set(id, { id, browserName, testFiles, status: SessionStatuses.INITIALIZING });
     }
   }
 
@@ -112,18 +114,67 @@ export async function runTests(config: TestRunnerConfig) {
       return n.includes('chrome') || n.includes('chromium') || n.includes('firefox');
     }) ?? browserNames[0];
   const sessions = createTestSessions(browserNames, testFiles, !!config.testIsolation);
-  const succeededResults: TestSessionResult[] = [];
-  const failedResults: TestSessionResult[] = [];
-  const resultsByBrowser = new Map<string, TestSessionResult[]>();
-  const resultsByTestFile = new Map<string, TestSessionResult[]>();
+  const sessionsByBrowser = new Map<string, TestSession[]>();
+  const sessionsByTestFile = new Map<string, TestSession[]>();
+  const failedSessionByTestFile = new Map<string, TestSession[]>();
+  const initializingSessions = new Set<string>();
   const runningSessions = new Set<string>();
+  const finishedSessions = new Set<string>();
+  const succeededSessions = new Map<string, TestSession>();
+  const failedSessions = new Map<string, TestSession>();
   const startTime = Date.now();
 
+  function updateSession(newSession: TestSession) {
+    sessions.set(newSession.id, newSession);
+    replaceOrAddInMappedArray(sessionsByBrowser, newSession.browserName, newSession);
+    for (const testFile of newSession.testFiles) {
+      replaceOrAddInMappedArray(sessionsByTestFile, testFile, newSession);
+
+      if (newSession.status === SessionStatuses.FINISHED && !newSession.result!.succeeded) {
+        replaceOrAddInMappedArray(failedSessionByTestFile, testFile, newSession);
+      } else {
+        removeFromMappedArray(failedSessionByTestFile, testFile, newSession);
+      }
+    }
+
+    if (newSession.status === SessionStatuses.INITIALIZING) {
+      initializingSessions.add(newSession.id);
+      runningSessions.add(newSession.id);
+      finishedSessions.delete(newSession.id);
+    } else if (newSession.status === SessionStatuses.RUNNING) {
+      initializingSessions.delete(newSession.id);
+      runningSessions.add(newSession.id);
+      finishedSessions.delete(newSession.id);
+    } else if (newSession.status === SessionStatuses.FINISHED) {
+      initializingSessions.delete(newSession.id);
+      runningSessions.delete(newSession.id);
+      finishedSessions.add(newSession.id);
+    }
+
+    if (newSession.status === SessionStatuses.FINISHED) {
+      if (newSession.result!.succeeded) {
+        succeededSessions.set(newSession.id, newSession);
+        failedSessions.delete(newSession.id);
+      } else {
+        succeededSessions.delete(newSession.id);
+        failedSessions.set(newSession.id, newSession);
+      }
+    } else {
+      succeededSessions.delete(newSession.id);
+      failedSessions.delete(newSession.id);
+    }
+  }
+
+  for (const session of sessions.values()) {
+    updateSession(session);
+  }
+
   function updateProgress() {
-    renderTestProgress({
+    renderTestProgress(config, {
       browserNames,
       testFiles,
-      resultsByBrowser,
+      sessionsByBrowser,
+      initializingSessions,
       runningSessions,
       startTime,
     });
@@ -136,35 +187,30 @@ export async function runTests(config: TestRunnerConfig) {
   }, 500);
   updateProgress();
 
-  async function onSessionFinished(result: TestSessionResult) {
-    const { session } = result;
-    runningSessions.delete(session.id);
-    if (result.succeeded) {
-      succeededResults.push(result);
-    } else {
-      failedResults.push(result);
+  async function onSessionStarted(sessionId: string) {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Unknown session ${sessionId}`);
     }
 
-    let resultsForBrowser = resultsByBrowser.get(session.browserName);
-    if (!resultsForBrowser) {
-      resultsForBrowser = [];
-      resultsByBrowser.set(session.browserName, resultsForBrowser);
+    updateSession({ ...session, status: SessionStatuses.RUNNING });
+    updateProgress();
+  }
+
+  async function onSessionFinished(sessionId: string, result: TestSessionResult) {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Unknown session ${sessionId}`);
     }
-    resultsForBrowser.push(result);
+
+    updateSession({ ...session, status: SessionStatuses.FINISHED, result });
 
     for (const testFile of session.testFiles) {
-      let resultsForTestFile = resultsByTestFile.get(testFile);
-      if (!resultsForTestFile) {
-        resultsForTestFile = [];
-        resultsByTestFile.set(testFile, resultsForTestFile);
-      }
-      resultsForTestFile.push(result);
+      const sessionsForTestFile = sessionsByTestFile.get(testFile)!;
+      const failedSessionsForTestFile = failedSessionByTestFile.get(testFile) || [];
 
-      if (resultsForTestFile.length === browserNames.length) {
-        const failedResults = resultsForTestFile.filter((r) => !r.succeeded);
-        if (failedResults.length > 0) {
-          logFileErrors(testFile, browserNames, favoriteBrowser, failedResults);
-        }
+      if (sessionsForTestFile.length === failedSessionsForTestFile.length) {
+        logFileErrors(testFile, browserNames, favoriteBrowser, failedSessionsForTestFile);
       }
     }
 
@@ -173,17 +219,17 @@ export async function runTests(config: TestRunnerConfig) {
 
     if (shouldExit) {
       setTimeout(async () => {
-        logGeneralErrors(failedResults);
+        logGeneralErrors(failedSessions);
         clearInterval(updateProgressInterval);
         await stop();
         terminalLogger.stop();
-        process.exit(failedResults.length > 0 ? 1 : 0);
+        process.exit(failedSessions.size > 0 ? 1 : 0);
       });
     }
   }
 
   const sessionsArray = Array.from(sessions.values());
-  await config.server.start({ config, sessions, onSessionFinished });
+  await config.server.start({ config, sessions, onSessionStarted, onSessionFinished });
 
   for (const s of sessionsArray) {
     runningSessions.add(s.id);

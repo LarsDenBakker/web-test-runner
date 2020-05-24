@@ -10,7 +10,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
   let server: net.Server;
 
   return {
-    async start({ config, sessions, onSessionFinished }) {
+    async start({ config, sessions, onSessionStarted, onSessionFinished }) {
       const testRunnerImport = process.env.LOCAL_TESTING
         ? config.testRunnerImport.replace('web-test-runner', '.')
         : config.testRunnerImport;
@@ -46,10 +46,17 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                     return;
                   }
 
+                  // TODO: Handle race conditions for these requests
+                  if (command === 'session-started') {
+                    ctx.status = 200;
+                    onSessionStarted(sessionId);
+                    return;
+                  }
+
                   if (command === 'session-finished') {
                     ctx.status = 200;
                     const result = (await parse.json(ctx)) as BrowserSessionResult;
-                    onSessionFinished({ session, ...result });
+                    onSessionFinished(sessionId, result);
                     return;
                   }
                 }
