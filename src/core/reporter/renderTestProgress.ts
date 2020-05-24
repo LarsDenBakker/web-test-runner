@@ -11,6 +11,7 @@ export interface TestProgressArgs {
   initializingSessions: Set<string>;
   runningSessions: Set<string>;
   startTime: number;
+  finishedOnce: boolean;
 }
 
 const fullProgress = '█';
@@ -92,13 +93,24 @@ export function renderTestProgress(config: TestRunnerConfig, args: TestProgressA
     initializingSessions,
     runningSessions,
     startTime,
+    finishedOnce,
   } = args;
 
   const entries: TerminalEntry[] = [];
   if (initializingSessions.size === 0 && runningSessions.size === 0) {
-    entries.push(chalk.bold('Finished running tests!'));
+    if (config.watch) {
+      entries.push(chalk.bold('Finished running tests, watching for file changes...'));
+    } else if (config.debug) {
+      entries.push(chalk.bold('Finished running tests, waiting for browser reload...'));
+    } else {
+      entries.push(chalk.bold('Finished running tests!'));
+    }
   } else {
-    entries.push(chalk.bold('Running tests:'));
+    if (finishedOnce && (config.watch || config.debug)) {
+      entries.push(chalk.bold(`Rerunning ${runningSessions.size} test files:`));
+    } else {
+      entries.push(chalk.bold('Running tests:'));
+    }
   }
   entries.push('');
 

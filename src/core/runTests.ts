@@ -122,6 +122,7 @@ export async function runTests(config: TestRunnerConfig) {
   const finishedSessions = new Set<string>();
   const succeededSessions = new Map<string, TestSession>();
   const failedSessions = new Map<string, TestSession>();
+  let finishedOnce = false;
   const startTime = Date.now();
 
   function updateSession(newSession: TestSession) {
@@ -177,6 +178,7 @@ export async function runTests(config: TestRunnerConfig) {
       initializingSessions,
       runningSessions,
       startTime,
+      finishedOnce,
     });
   }
 
@@ -214,9 +216,13 @@ export async function runTests(config: TestRunnerConfig) {
       }
     }
 
-    const shouldExit = !config.watch && !config.debug && runningSessions.size === 0;
+    const finishedAll = runningSessions.size === 0;
+    if (finishedAll) {
+      finishedOnce = true;
+    }
     updateProgress();
 
+    const shouldExit = finishedAll && !config.watch && !config.debug;
     if (shouldExit) {
       setTimeout(async () => {
         logGeneralErrors(failedSessions);
