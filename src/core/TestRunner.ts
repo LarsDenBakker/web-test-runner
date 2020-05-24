@@ -1,12 +1,13 @@
-import { TestSession, SessionStatuses } from './TestSession';
+import { SessionStatuses } from './TestSession';
 import { TestRunnerConfig } from './TestRunnerConfig';
-import { replaceOrAddInMappedArray, removeFromMappedArray, createTestSessions } from './utils';
+import { createTestSessions } from './utils';
 import { terminalLogger } from './reporter/terminalLogger';
 import { BrowserLauncher } from './BrowserLauncher';
 import { TestSessionResult } from './TestSessionResult';
 import { logFileErrors } from './reporter/logFileErrors';
 import { logGeneralErrors } from './reporter/logGeneralErrors';
 import { renderTestProgress } from './reporter/renderTestProgress';
+import { TestSessionManager } from './TestSessionManager';
 
 export class TestRunner {
   private config: TestRunnerConfig;
@@ -15,15 +16,7 @@ export class TestRunner {
   private testFiles: string[];
   private favoriteBrowser?: string;
   private serverAddress: string;
-  private sessions = new Map<string, TestSession>();
-  private sessionsByBrowser = new Map<string, TestSession[]>();
-  private sessionsByTestFile = new Map<string, TestSession[]>();
-  private failedSessionByTestFile = new Map<string, TestSession[]>();
-  private initializingSessions = new Set<string>();
-  private runningSessions = new Set<string>();
-  private finishedSessions = new Set<string>();
-  private succeededSessions = new Map<string, TestSession>();
-  private failedSessions = new Map<string, TestSession>();
+  private manager = new TestSessionManager();
   private finishedOnce = false;
   private startTime = -1;
   private updateTestProgressIntervalId?: NodeJS.Timer;
@@ -34,7 +27,6 @@ export class TestRunner {
     this.config = config;
     this.testFiles = testFiles;
     this.browsers = Array.isArray(config.browsers) ? config.browsers : [config.browsers];
-
     this.serverAddress = `${config.address}:${config.port}/`;
   }
 
@@ -60,14 +52,14 @@ export class TestRunner {
         return n.includes('chrome') || n.includes('chromium') || n.includes('firefox');
       }) ?? this.browserNames[0];
 
-    this.sessions = createTestSessions(
+    const createdSessions = createTestSessions(
       this.browserNames,
       this.testFiles,
       !!this.config.testIsolation
     );
 
-    for (const session of this.sessions.values()) {
-      this.updateSession(session);
+    for (const session of createdSessions.values()) {
+      this.manager.updateSession(session);
     }
 
     terminalLogger.start(this.serverAddress);
@@ -77,10 +69,10 @@ export class TestRunner {
     }, 500);
     this.updateTestProgress();
 
-    const sessionsArray = Array.from(this.sessions.values());
+    const sessionsArray = Array.from(this.manager.sessions.values());
     await this.config.server.start({
       config: this.config,
-      sessions: this.sessions,
+      sessions: this.manager.sessions,
       onSessionStarted: this.onSessionStarted,
       onSessionFinished: this.onSessionFinished,
     });
@@ -113,26 +105,26 @@ export class TestRunner {
   }
 
   onSessionStarted = async (sessionId: string) => {
-    const session = this.sessions.get(sessionId);
+    const session = this.manager.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Unknown session ${sessionId}`);
     }
 
-    this.updateSession({ ...session, status: SessionStatuses.RUNNING });
+    this.manager.updateSession({ ...session, status: SessionStatuses.RUNNING });
     this.updateTestProgress();
   };
 
   onSessionFinished = async (sessionId: string, result: TestSessionResult) => {
-    const session = this.sessions.get(sessionId);
+    const session = this.manager.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Unknown session ${sessionId}`);
     }
 
-    this.updateSession({ ...session, status: SessionStatuses.FINISHED, result });
+    this.manager.updateSession({ ...session, status: SessionStatuses.FINISHED, result });
 
     for (const testFile of session.testFiles) {
-      const sessionsForTestFile = this.sessionsByTestFile.get(testFile)!;
-      const failedSessionsForTestFile = this.failedSessionByTestFile.get(testFile) || [];
+      const sessionsForTestFile = this.manager.sessionsByTestFile.get(testFile)!;
+      const failedSessionsForTestFile = this.manager.failedSessionByTestFile.get(testFile) || [];
 
       if (sessionsForTestFile.length === failedSessionsForTestFile.length) {
         logFileErrors(
@@ -144,7 +136,7 @@ export class TestRunner {
       }
     }
 
-    const finishedAll = this.runningSessions.size === 0;
+    const finishedAll = this.manager.runningSessions.size === 0;
     if (finishedAll) {
       this.finishedOnce = true;
     }
@@ -154,65 +146,24 @@ export class TestRunner {
 
     if (shouldExit) {
       setTimeout(async () => {
-        logGeneralErrors(this.failedSessions);
+        logGeneralErrors(this.manager.failedSessions);
         if (this.updateTestProgressIntervalId != null) {
           clearInterval(this.updateTestProgressIntervalId);
         }
         await this.stop();
         terminalLogger.stop();
-        process.exit(this.failedSessions.size > 0 ? 1 : 0);
+        process.exit(this.manager.failedSessions.size > 0 ? 1 : 0);
       });
     }
   };
-
-  updateSession(newSession: TestSession) {
-    this.sessions.set(newSession.id, newSession);
-    replaceOrAddInMappedArray(this.sessionsByBrowser, newSession.browserName, newSession);
-    for (const testFile of newSession.testFiles) {
-      replaceOrAddInMappedArray(this.sessionsByTestFile, testFile, newSession);
-
-      if (newSession.status === SessionStatuses.FINISHED && !newSession.result!.succeeded) {
-        replaceOrAddInMappedArray(this.failedSessionByTestFile, testFile, newSession);
-      } else {
-        removeFromMappedArray(this.failedSessionByTestFile, testFile, newSession);
-      }
-    }
-
-    if (newSession.status === SessionStatuses.INITIALIZING) {
-      this.initializingSessions.add(newSession.id);
-      this.runningSessions.add(newSession.id);
-      this.finishedSessions.delete(newSession.id);
-    } else if (newSession.status === SessionStatuses.RUNNING) {
-      this.initializingSessions.delete(newSession.id);
-      this.runningSessions.add(newSession.id);
-      this.finishedSessions.delete(newSession.id);
-    } else if (newSession.status === SessionStatuses.FINISHED) {
-      this.initializingSessions.delete(newSession.id);
-      this.runningSessions.delete(newSession.id);
-      this.finishedSessions.add(newSession.id);
-    }
-
-    if (newSession.status === SessionStatuses.FINISHED) {
-      if (newSession.result!.succeeded) {
-        this.succeededSessions.set(newSession.id, newSession);
-        this.failedSessions.delete(newSession.id);
-      } else {
-        this.succeededSessions.delete(newSession.id);
-        this.failedSessions.set(newSession.id, newSession);
-      }
-    } else {
-      this.succeededSessions.delete(newSession.id);
-      this.failedSessions.delete(newSession.id);
-    }
-  }
 
   updateTestProgress() {
     renderTestProgress(this.config, {
       browserNames: this.browserNames,
       testFiles: this.testFiles,
-      sessionsByBrowser: this.sessionsByBrowser,
-      initializingSessions: this.initializingSessions,
-      runningSessions: this.runningSessions,
+      sessionsByBrowser: this.manager.sessionsByBrowser,
+      initializingSessions: this.manager.initializingSessions,
+      runningSessions: this.manager.runningSessions,
       startTime: this.startTime,
       finishedOnce: this.finishedOnce,
     });
