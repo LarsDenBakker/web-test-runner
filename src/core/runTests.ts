@@ -2,13 +2,14 @@ import globby from 'globby';
 import { TestRunnerConfig } from './TestRunnerConfig';
 import { TestRunner } from './TestRunner';
 
+const dedupeArray = (arr: string[]): string[] => [...new Set(arr)];
+
 async function collectTestFiles(patterns: string | string[]) {
   const testFiles: string[] = [];
   for (const pattern of Array.isArray(patterns) ? patterns : [patterns]) {
     testFiles.push(...(await globby(pattern)));
   }
-
-  return testFiles.map((f) => f);
+  return dedupeArray(testFiles).map((f) => f);
 }
 
 export async function runTests(config: TestRunnerConfig) {
