@@ -87,7 +87,7 @@ function getSucceededAndFailed({
   return { failed, succeeded };
 }
 
-export function renderTestProgress(config: TestRunnerConfig, args: TestProgressArgs) {
+export function reportTestProgress(config: TestRunnerConfig, args: TestProgressArgs) {
   const {
     browserNames,
     testRun,

@@ -56,10 +56,7 @@ function createFailedOnBrowsers(allBrowserNames: string[], failedBrowsers: strin
   return ` (failed on ${browserString})`;
 }
 
-let loggedHeader = false;
-const handledFiles = new Set<string>();
-
-export function logFileErrors(
+export function reportFileErrors(
   testFile: string,
   allBrowserNames: string[],
   favoriteBrowser: string,
@@ -85,10 +82,7 @@ export function logFileErrors(
   }
 
   const errorsByTestAndBrowser = new Map<string, Map<string, TestResultError>>();
-  const commonLogs: string[] = [];
-  const logsByBrowser = new Map<string, string[]>();
 
-  const allFailedLogs = failedSessions.map((s) => s.result!.logs);
   for (const session of failedSessions) {
     function handleTests(prefix: string, tests: TestResult[]) {
       for (const test of tests) {
@@ -115,21 +109,6 @@ export function logFileErrors(
     }
 
     handleSuite('', session.result!);
-
-    for (const log of session.result!.logs) {
-      if (!commonLogs.includes(log)) {
-        if (allFailedLogs.every((logs) => logs.includes(log))) {
-          commonLogs.push(log);
-        } else {
-          let logsForBrowser = logsByBrowser.get(session.browserName);
-          if (!logsForBrowser) {
-            logsForBrowser = [];
-            logsByBrowser.set(session.browserName, logsForBrowser);
-          }
-          logsForBrowser.push(log);
-        }
-      }
-    }
   }
 
   if (errorsByTestAndBrowser.size > 0) {
@@ -142,20 +121,6 @@ export function logFileErrors(
       entries.push({ text: `${name}${failedOn}`, indent: 2 });
       entries.push({ text: renderError(favoriteError), indent: 4 });
       entries.push('');
-    }
-  }
-
-  if (commonLogs.length > 0) {
-    entries.push({ text: 'Browser logs:', indent: 2 });
-    for (const log of commonLogs) {
-      entries.push({ text: log, indent: 4 });
-    }
-  }
-
-  for (const [browser, logs] of logsByBrowser) {
-    entries.push({ text: `${browser} logs:`, indent: 2 });
-    for (const log of logs) {
-      entries.push({ text: log, indent: 4 });
     }
   }
 

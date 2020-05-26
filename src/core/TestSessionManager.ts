@@ -6,7 +6,7 @@ export class TestSessionManager {
   public sessions = new Map<string, TestSession>();
   public sessionsByBrowser = new Map<string, TestSession[]>();
   public sessionsByTestFile = new Map<string, TestSession[]>();
-  public failedSessionByTestFile = new Map<string, TestSession[]>();
+  public finishedSessionsByTestFile = new Map<string, TestSession[]>();
   public initializingSessions = new Set<string>();
   public runningSessions = new Set<string>();
   public finishedSessions = new Set<string>();
@@ -19,10 +19,10 @@ export class TestSessionManager {
     for (const testFile of newSession.testFiles) {
       replaceOrAddInMappedArray(this.sessionsByTestFile, testFile, newSession);
 
-      if (newSession.status === SessionStatuses.FINISHED && !newSession.result!.succeeded) {
-        replaceOrAddInMappedArray(this.failedSessionByTestFile, testFile, newSession);
+      if (newSession.status === SessionStatuses.FINISHED) {
+        replaceOrAddInMappedArray(this.finishedSessionsByTestFile, testFile, newSession);
       } else {
-        removeFromMappedArray(this.failedSessionByTestFile, testFile, newSession);
+        removeFromMappedArray(this.finishedSessionsByTestFile, testFile, newSession);
       }
     }
 

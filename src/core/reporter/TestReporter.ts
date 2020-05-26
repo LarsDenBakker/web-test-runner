@@ -1,9 +1,12 @@
 import { TestRun } from '../TestRun';
 import { TestRunnerConfig } from '../TestRunnerConfig';
-import { TestProgressArgs, renderTestProgress } from './renderTestProgress';
-import { logFileErrors } from './logFileErrors';
+import { TestProgressArgs, reportTestProgress } from './reportTestProgress';
+import { reportFileErrors } from './reportFileErrors';
+import { reportBrowserLogs } from './reportBrowserLogs';
+import { reportSessionErrors } from './reportSessionErrors';
 import { TestSession } from '../TestSession';
 import { terminalLogger } from './terminalLogger';
+import chalk from 'chalk';
 
 const formatTime = (nr: number) => String(nr).padStart(2, '0');
 
@@ -23,7 +26,7 @@ export class TestReporter {
     testFile: string,
     allBrowserNames: string[],
     favoriteBrowser: string,
-    failedSessions: TestSession[]
+    finishedSessions: TestSession[]
   ) {
     let reportedFiles = this.reportedFilesByTestRun.get(testRun.number);
     if (!reportedFiles) {
@@ -33,11 +36,23 @@ export class TestReporter {
 
     if (!reportedFiles?.has(testFile)) {
       reportedFiles.add(testFile);
-      logFileErrors(testFile, allBrowserNames, favoriteBrowser, failedSessions);
+      const failedSessions = finishedSessions.filter((s) => !s.result!.succeeded);
+
+      if (failedSessions.length > 0) {
+        reportFileErrors(testFile, allBrowserNames, favoriteBrowser, failedSessions);
+      } else {
+        terminalLogger.renderStatic({ text: chalk.green('All tests passed!'), indent: 2 });
+      }
+
+      reportBrowserLogs(testFile, finishedSessions);
     }
   }
 
+  reportSessionErrors(failedSessions: Map<string, TestSession>) {
+    reportSessionErrors(failedSessions);
+  }
+
   reportTestProgress(config: TestRunnerConfig, args: TestProgressArgs) {
-    renderTestProgress(config, args);
+    reportTestProgress(config, args);
   }
 }

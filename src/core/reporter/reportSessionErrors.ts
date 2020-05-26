@@ -1,9 +1,9 @@
 import chalk from 'chalk';
-import { renderError } from './logFileErrors';
+import { renderError } from './reportFileErrors';
 import { TerminalEntry, terminalLogger } from './terminalLogger';
 import { TestSession } from '../TestSession';
 
-export function logGeneralErrors(failedSessionsMap: Map<string, TestSession>) {
+export function reportSessionErrors(failedSessionsMap: Map<string, TestSession>) {
   const entries: TerminalEntry[] = [];
   const failedSessions = Array.from(failedSessionsMap.values());
 

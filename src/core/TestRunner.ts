@@ -4,8 +4,6 @@ import { createTestSessions } from './utils';
 import { terminalLogger } from './reporter/terminalLogger';
 import { BrowserLauncher } from './BrowserLauncher';
 import { TestSessionResult } from './TestSessionResult';
-import { logGeneralErrors } from './reporter/logGeneralErrors';
-import { renderTestProgress } from './reporter/renderTestProgress';
 import { TestSessionManager } from './TestSessionManager';
 import { TestReporter } from './reporter/TestReporter';
 import { TestRun } from './TestRun';
@@ -160,15 +158,16 @@ export class TestRunner {
 
     for (const testFile of session.testFiles) {
       const sessionsForTestFile = this.manager.sessionsByTestFile.get(testFile)!;
-      const failedSessionsForTestFile = this.manager.failedSessionByTestFile.get(testFile) || [];
+      const finishedSessionsForTestFile =
+        this.manager.finishedSessionsByTestFile.get(testFile) || [];
 
-      if (sessionsForTestFile.length === failedSessionsForTestFile.length) {
+      if (sessionsForTestFile.length === finishedSessionsForTestFile.length) {
         this.reporter.reportTestFileResults(
           this.currentTestRun!,
           testFile,
           this.browserNames,
           this.favoriteBrowser!,
-          failedSessionsForTestFile
+          finishedSessionsForTestFile
         );
       }
     }
@@ -183,7 +182,8 @@ export class TestRunner {
 
     if (shouldExit) {
       setTimeout(async () => {
-        logGeneralErrors(this.manager.failedSessions);
+        // TODO: Report these in watch mode too
+        this.reporter.reportSessionErrors(this.manager.failedSessions);
         if (this.updateTestProgressIntervalId != null) {
           clearInterval(this.updateTestProgressIntervalId);
         }
@@ -195,7 +195,7 @@ export class TestRunner {
   };
 
   private updateTestProgress() {
-    renderTestProgress(this.config, {
+    this.reporter.reportTestProgress(this.config, {
       browserNames: this.browserNames,
       testRun: this.currentTestRun!,
       testFiles: this.testFiles,
