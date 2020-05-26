@@ -3,22 +3,25 @@ import deepmerge from 'deepmerge';
 import { Context, Next } from 'koa';
 import net from 'net';
 import parse from 'co-body';
+import chokidar from 'chokidar';
 import { Server } from '../../core/Server';
 import { RuntimeConfig, BrowserSessionResult } from '../../core/runtime/types';
+import { rerunSessionsMiddleware } from './rerun-sessions-middleware';
 
 export function createEsDevServer(devServerConfig: object = {}): Server {
   let server: net.Server;
 
   return {
-    async start({ config, sessions, onSessionStarted, onSessionFinished }) {
+    async start({ config, sessions, onSessionStarted, onSessionFinished, onRerunSessions }) {
       const testRunnerImport = process.env.LOCAL_TESTING
         ? config.testRunnerImport.replace('web-test-runner', '.')
         : config.testRunnerImport;
 
+      const fileWatcher = chokidar.watch([]);
+
       const serverConfig = createConfig(
         deepmerge(
           {
-            watch: config.watch,
             port: config.port,
             nodeResolve: true,
             middlewares: [
@@ -71,6 +74,12 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                 //   }
                 // }
               },
+              rerunSessionsMiddleware({
+                // TODO: Configurable cwd?
+                rootDir: process.cwd(),
+                fileWatcher,
+                onRerunSessions,
+              }),
             ],
             plugins: [
               {
@@ -96,7 +105,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
         )
       );
 
-      ({ server } = await startServer(serverConfig));
+      ({ server } = await startServer(serverConfig, fileWatcher));
     },
 
     async stop() {

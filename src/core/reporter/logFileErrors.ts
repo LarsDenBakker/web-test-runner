@@ -65,10 +65,6 @@ export function logFileErrors(
   favoriteBrowser: string,
   failedSessions: TestSession[]
 ) {
-  if (handledFiles.has(testFile)) {
-    return;
-  }
-
   const entries: TerminalEntry[] = [];
 
   entries.push(`${chalk.underline(testFile)}`);

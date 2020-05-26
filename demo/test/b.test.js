@@ -1,4 +1,5 @@
 import { expect } from '@bundled-es-modules/chai';
+import './x.js';
 
 describe('test b', () => {
   it('undefined is a function', () => {

@@ -7,6 +7,7 @@ export interface ServerStartArgs {
   sessions: Map<string, TestSession>;
   onSessionStarted: (id: string) => void;
   onSessionFinished: (id: string, result: TestSessionResult) => void;
+  onRerunSessions: (sessionIds: string[]) => void;
 }
 
 export interface Server {

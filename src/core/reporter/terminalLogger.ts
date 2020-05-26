@@ -48,7 +48,9 @@ class TerminalLogger {
         console[key] = new Proxy(console[key], {
           apply: (target, thisArg, argArray) => {
             // TODO: Remove this when fixed in EDS
-            if (argArray.some((arg: unknown) => typeof arg === 'string' && arg.startsWith('[BABEL]'))) {
+            if (
+              argArray.some((arg: unknown) => typeof arg === 'string' && arg.startsWith('[BABEL]'))
+            ) {
               return;
             }
 
@@ -76,14 +78,16 @@ class TerminalLogger {
     this.started = false;
   }
 
-  renderStatic(entries: TerminalEntry[]) {
+  renderStatic(entriesOrEntry: TerminalEntry | TerminalEntry[]) {
+    const entries = Array.isArray(entriesOrEntry) ? entriesOrEntry : [entriesOrEntry];
     if (entries.length === 0) {
       return;
     }
     console.log(buildLogString(entries, this.serverAddress!));
   }
 
-  renderDynamic(entries: TerminalEntry[]) {
+  renderDynamic(entriesOrEntry: TerminalEntry | TerminalEntry[]) {
+    const entries = Array.isArray(entriesOrEntry) ? entriesOrEntry : [entriesOrEntry];
     if (!this.started) {
       return;
     }

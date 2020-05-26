@@ -1,12 +1,14 @@
 import chalk from 'chalk';
-import { TestSessionResult, TestSuiteResult, TestResult } from '../TestSessionResult';
+import { TestSuiteResult, TestResult } from '../TestSessionResult';
 import { TerminalEntry, terminalLogger } from './terminalLogger';
 import { TestSession, SessionStatuses } from '../TestSession';
 import { TestRunnerConfig } from '../TestRunnerConfig';
+import { TestRun } from '../TestRun';
 
 export interface TestProgressArgs {
   browserNames: string[];
   testFiles: string[];
+  testRun?: TestRun;
   sessionsByBrowser: Map<string, TestSession[]>;
   initializingSessions: Set<string>;
   runningSessions: Set<string>;
@@ -88,6 +90,7 @@ function getSucceededAndFailed({
 export function renderTestProgress(config: TestRunnerConfig, args: TestProgressArgs) {
   const {
     browserNames,
+    testRun,
     testFiles,
     sessionsByBrowser,
     initializingSessions,
@@ -97,17 +100,19 @@ export function renderTestProgress(config: TestRunnerConfig, args: TestProgressA
   } = args;
 
   const entries: TerminalEntry[] = [];
-  if (initializingSessions.size === 0 && runningSessions.size === 0) {
+  if (testRun && initializingSessions.size === 0 && runningSessions.size === 0) {
     if (config.watch) {
-      entries.push(chalk.bold('Finished running tests, watching for file changes...'));
+      entries.push(chalk.bold(`Finished test run ${testRun.number}, watching for file changes...`));
     } else if (config.debug) {
-      entries.push(chalk.bold('Finished running tests, waiting for browser reload...'));
+      entries.push(
+        chalk.bold(`Finished test run ${testRun.number}, waiting for browser reload...`)
+      );
     } else {
       entries.push(chalk.bold('Finished running tests!'));
     }
   } else {
-    if (finishedOnce && (config.watch || config.debug)) {
-      entries.push(chalk.bold(`Rerunning ${runningSessions.size} test files:`));
+    if (config.watch || config.debug) {
+      entries.push(chalk.bold(`Running test run ${testRun?.number || 1}...`));
     } else {
       entries.push(chalk.bold('Running tests:'));
     }
@@ -118,7 +123,7 @@ export function renderTestProgress(config: TestRunnerConfig, args: TestProgressA
   for (const browser of browserNames) {
     const sessions = sessionsByBrowser.get(browser)!;
     const finished = sessions.reduce(
-      (all, s) => (s.status === SessionStatuses.FINISHED ? all + s.testFiles.length : 0),
+      (all, s) => (s.status === SessionStatuses.FINISHED ? all + s.testFiles.length : all),
       0
     );
     const progressBar = `${renderProgressBar(finished, testFiles.length)} ${finished}/${

@@ -1,9 +1,8 @@
 import { expect } from '@bundled-es-modules/chai';
+import './x.js';
 
 describe('test c', () => {
   it('undefined is not a function', () => {
-    console.log('lol!')
-    throw new Error('nope')
     expect(undefined).to.not.be.a('function');
   });
 

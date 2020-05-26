@@ -1,13 +1,14 @@
-import { SessionStatuses } from './TestSession';
+import { SessionStatuses, TestSession } from './TestSession';
 import { TestRunnerConfig } from './TestRunnerConfig';
 import { createTestSessions } from './utils';
 import { terminalLogger } from './reporter/terminalLogger';
 import { BrowserLauncher } from './BrowserLauncher';
 import { TestSessionResult } from './TestSessionResult';
-import { logFileErrors } from './reporter/logFileErrors';
 import { logGeneralErrors } from './reporter/logGeneralErrors';
 import { renderTestProgress } from './reporter/renderTestProgress';
 import { TestSessionManager } from './TestSessionManager';
+import { TestReporter } from './reporter/TestReporter';
+import { TestRun } from './TestRun';
 
 export class TestRunner {
   private config: TestRunnerConfig;
@@ -17,11 +18,14 @@ export class TestRunner {
   private favoriteBrowser?: string;
   private serverAddress: string;
   private manager = new TestSessionManager();
+  private reporter = new TestReporter();
   private finishedOnce = false;
   private startTime = -1;
   private updateTestProgressIntervalId?: NodeJS.Timer;
   private started = false;
   private stopped = false;
+  private testRuns: TestRun[] = [];
+  private currentTestRun?: TestRun;
 
   constructor(config: TestRunnerConfig, testFiles: string[]) {
     this.config = config;
@@ -75,10 +79,26 @@ export class TestRunner {
       sessions: this.manager.sessions,
       onSessionStarted: this.onSessionStarted,
       onSessionFinished: this.onSessionFinished,
+      onRerunSessions: this.onRerunSessions,
     });
 
+    const testRun = this.createTestRun(sessionsArray);
+    this.runTests(testRun);
+  }
+
+  private runTests(testRun: TestRun) {
+    // TODO: cancel previous test run
+    if (this.browsers.length > 1) {
+      // TODO: only pass sessions to browsers associated with it
+      throw new Error('Multiple browsers are not yet supported');
+    }
+
+    if (this.config.watch || this.config.debug) {
+      this.reporter.reportTestRunStart(testRun);
+    }
+
     for (const browser of this.browsers) {
-      browser.runTests(sessionsArray);
+      browser.runTests(Array.from(testRun.sessions.values()));
     }
   }
 
@@ -104,7 +124,7 @@ export class TestRunner {
     await Promise.all(tasks);
   }
 
-  onSessionStarted = async (sessionId: string) => {
+  private onSessionStarted = async (sessionId: string) => {
     const session = this.manager.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Unknown session ${sessionId}`);
@@ -114,12 +134,28 @@ export class TestRunner {
     this.updateTestProgress();
   };
 
-  onSessionFinished = async (sessionId: string, result: TestSessionResult) => {
+  private onRerunSessions = (sessionIds: string[]) => {
+    const sessions = sessionIds.map((id) => {
+      const session = this.manager.sessions.get(id);
+      if (!session) {
+        throw new Error(`Unknown session ${id}.`);
+      }
+      return session;
+    });
+
+    for (const session of sessions) {
+      this.manager.updateSession({ ...session, status: SessionStatuses.INITIALIZING });
+    }
+
+    const testRun = this.createTestRun(sessions);
+    this.runTests(testRun);
+  };
+
+  private onSessionFinished = async (sessionId: string, result: TestSessionResult) => {
     const session = this.manager.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Unknown session ${sessionId}`);
     }
-
     this.manager.updateSession({ ...session, status: SessionStatuses.FINISHED, result });
 
     for (const testFile of session.testFiles) {
@@ -127,7 +163,8 @@ export class TestRunner {
       const failedSessionsForTestFile = this.manager.failedSessionByTestFile.get(testFile) || [];
 
       if (sessionsForTestFile.length === failedSessionsForTestFile.length) {
-        logFileErrors(
+        this.reporter.reportTestFileResults(
+          this.currentTestRun!,
           testFile,
           this.browserNames,
           this.favoriteBrowser!,
@@ -157,9 +194,10 @@ export class TestRunner {
     }
   };
 
-  updateTestProgress() {
+  private updateTestProgress() {
     renderTestProgress(this.config, {
       browserNames: this.browserNames,
+      testRun: this.currentTestRun!,
       testFiles: this.testFiles,
       sessionsByBrowser: this.manager.sessionsByBrowser,
       initializingSessions: this.manager.initializingSessions,
@@ -167,5 +205,12 @@ export class TestRunner {
       startTime: this.startTime,
       finishedOnce: this.finishedOnce,
     });
+  }
+
+  private createTestRun(sessions: TestSession[]): TestRun {
+    const testRun: TestRun = { number: this.testRuns.length + 1, startTime: Date.now(), sessions };
+    this.testRuns.push(testRun);
+    this.currentTestRun = testRun;
+    return testRun;
   }
 }

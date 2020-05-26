@@ -1,5 +1,6 @@
 import { TestSession, SessionStatuses } from './TestSession';
 import { replaceOrAddInMappedArray, removeFromMappedArray } from './utils';
+import { TestRun } from './TestRun';
 
 export class TestSessionManager {
   public sessions = new Map<string, TestSession>();
