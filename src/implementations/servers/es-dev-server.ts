@@ -87,7 +87,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                   if (context.path === '/') {
                     return {
                       type: 'html',
-                      body: `<html>
+                      body: config.html ?? `<html>
   <head></head>
   <body>
     <script type="module">
