@@ -53,11 +53,7 @@ export class TestRunner {
         return n.includes('chrome') || n.includes('chromium') || n.includes('firefox');
       }) ?? this.browserNames[0];
 
-    const createdSessions = createTestSessions(
-      this.browserNames,
-      this.testFiles,
-      !!this.config.testIsolation
-    );
+    const createdSessions = createTestSessions(this.browserNames, this.testFiles);
 
     for (const session of createdSessions.values()) {
       this.manager.updateSession(session);
@@ -165,16 +161,14 @@ export class TestRunner {
     }
     this.manager.updateSession({ ...session, status: SessionStatuses.FINISHED, result });
 
-    for (const testFile of session.testFiles) {
-      const sessionsForTestFile = this.manager.sessionsByTestFile.get(testFile)!;
-      this.reporter.reportTestFileResults(
-        this.currentTestRun!,
-        testFile,
-        this.browserNames,
-        this.favoriteBrowser!,
-        sessionsForTestFile
-      );
-    }
+    const sessionsForTestFile = this.manager.sessionsByTestFile.get(session.testFile)!;
+    this.reporter.reportTestFileResults(
+      this.currentTestRun!,
+      session.testFile,
+      this.browserNames,
+      this.favoriteBrowser!,
+      sessionsForTestFile
+    );
 
     const finishedAll = this.manager.runningSessions.size === 0;
     if (finishedAll) {

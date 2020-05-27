@@ -15,14 +15,12 @@ export class TestSessionManager {
   updateSession(newSession: TestSession) {
     this.sessions.set(newSession.id, newSession);
     replaceOrAddInMappedArray(this.sessionsByBrowser, newSession.browserName, newSession);
-    for (const testFile of newSession.testFiles) {
-      replaceOrAddInMappedArray(this.sessionsByTestFile, testFile, newSession);
+    replaceOrAddInMappedArray(this.sessionsByTestFile, newSession.testFile, newSession);
 
-      if (newSession.status === SessionStatuses.FINISHED) {
-        replaceOrAddInMappedArray(this.finishedSessionsByTestFile, testFile, newSession);
-      } else {
-        removeFromMappedArray(this.finishedSessionsByTestFile, testFile, newSession);
-      }
+    if (newSession.status === SessionStatuses.FINISHED) {
+      replaceOrAddInMappedArray(this.finishedSessionsByTestFile, newSession.testFile, newSession);
+    } else {
+      removeFromMappedArray(this.finishedSessionsByTestFile, newSession.testFile, newSession);
     }
 
     if (newSession.status === SessionStatuses.INITIALIZING) {

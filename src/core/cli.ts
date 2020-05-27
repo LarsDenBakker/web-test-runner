@@ -49,7 +49,6 @@ const commandLineOptions = [
     files: [],
     watch: false,
     debug: false,
-    testIsolation: true,
     testRunnerImport: 'web-test-runner/dist/implementations/frameworks/mocha.js',
     address: 'http://localhost',
     port: 9542,
@@ -67,9 +66,6 @@ const commandLineOptions = [
   }
   if ('debug' in args) {
     config.debug = !!args.debug;
-  }
-  if ('test-isolation' in args) {
-    config.testIsolation = !!args['test-isolation'];
   }
 
   if (!config.files) {

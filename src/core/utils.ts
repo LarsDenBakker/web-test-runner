@@ -38,36 +38,22 @@ export function removeFromMappedArray<K, I, V extends ItemWithId<I>>(
   }
 }
 
-export function createTestSessions(
-  browserNames: string[],
-  testFiles: string[],
-  testIsolation: boolean
-) {
+export function createTestSessions(browserNames: string[], testFiles: string[]) {
   const sessions = new Map<string, TestSession>();
 
-  if (testIsolation) {
-    // when running each test files in a separate tab, we group tests by file
-    for (const testFile of testFiles) {
-      const group = testFile;
-      const sessionsForFile = browserNames.map((browserName) => ({
-        id: uuid(),
-        group,
-        browserName,
-        status: SessionStatuses.INITIALIZING,
-        testFiles: [testFile],
-      }));
+  // when running each test files in a separate tab, we group tests by file
+  for (const testFile of testFiles) {
+    const group = testFile;
+    const sessionsForFile = browserNames.map((browserName) => ({
+      id: uuid(),
+      group,
+      browserName,
+      status: SessionStatuses.INITIALIZING,
+      testFile,
+    }));
 
-      for (const session of sessionsForFile) {
-        sessions.set(session.id, session);
-      }
-    }
-  } else {
-    // when running all tests in a single tab, we group sessions by browser
-    for (const browserName of browserNames) {
-      const group = browserName;
-      const id = uuid();
-
-      sessions.set(id, { id, browserName, testFiles, status: SessionStatuses.INITIALIZING });
+    for (const session of sessionsForFile) {
+      sessions.set(session.id, session);
     }
   }
 

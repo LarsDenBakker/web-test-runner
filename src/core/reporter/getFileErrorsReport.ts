@@ -72,6 +72,7 @@ export function getFileErrorsReport(
     const failedImport = sesion.result!.failedImports.find((i) => i.file === testFile)!;
     const failedBrowsers = sessionsThatFailedToImport.map((s) => s.browserName);
     const failedOn = createFailedOnBrowsers(allBrowserNames, failedBrowsers);
+
     entries.push({ text: `Failed to load test file${failedOn}`, indent: 2 });
     entries.push({ text: renderError(failedImport.error), indent: 2 });
   }

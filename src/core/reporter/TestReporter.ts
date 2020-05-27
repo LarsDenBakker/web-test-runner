@@ -26,7 +26,7 @@ export class TestReporter {
 
     // Log results of test files that are not being re-run
     for (const [testFile, sessions] of sessionsByTestFile) {
-      if (!testRun.sessions.some((s) => s.testFiles.includes(testFile))) {
+      if (!testRun.sessions.some((s) => s.testFile === testFile)) {
         this.reportTestFileResults(testRun, testFile, allBrowserNames, favoriteBrowser, sessions);
       }
     }

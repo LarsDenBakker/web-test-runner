@@ -10,5 +10,4 @@ export interface TestRunnerConfig {
   port: number;
   watch?: boolean;
   debug?: boolean;
-  testIsolation?: boolean;
 }

@@ -12,7 +12,7 @@ logUncaughtErrors();
 
 (async () => {
   sessionStarted();
-  const { testFiles, debug } = await getConfig();
+  const { testFile, debug } = await getConfig();
 
   const div = document.createElement('div');
   div.id = 'mocha';
@@ -34,13 +34,9 @@ logUncaughtErrors();
   mocha.setup({ ui: 'bdd', allowUncaught: false });
   const failedImports: FailedImport[] = [];
 
-  await Promise.all(
-    testFiles.map((file) =>
-      import(new URL(file, document.baseURI).href).catch((error) => {
-        failedImports.push({ file, error: { message: error.message, stack: error.stack } });
-      })
-    )
-  );
+  await import(new URL(testFile, document.baseURI).href).catch((error) => {
+    failedImports.push({ file: testFile, error: { message: error.message, stack: error.stack } });
+  });
 
   mocha.run((failures) => {
     // setTimeout to wait for logs to come in

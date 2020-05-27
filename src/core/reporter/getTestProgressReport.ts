@@ -116,18 +116,17 @@ export function getTestProgressReport(config: TestRunnerConfig, args: TestProgre
 
     for (const session of sessions) {
       if (session.status === SessionStatuses.FINISHED) {
-        for (const f of session.testFiles) {
-          finishedFiles.add(f);
-          finishedFilesForBrowser += 1;
-        }
+        const { testFile, result } = session;
+        finishedFiles.add(testFile);
+        finishedFilesForBrowser += 1;
 
-        if (session.result) {
-          for (const test of session.result.tests) {
+        if (result) {
+          for (const test of result.tests) {
             if (test.passed) {
-              passedTests.add(`${session.testFiles[0]}${test.name}`);
+              passedTests.add(`${testFile}${test.name}`);
               passedTestsForBrowser += 1;
             } else {
-              failedTests.add(`${session.testFiles[0]}${test.name}`);
+              failedTests.add(`${testFile}${test.name}`);
               failedTestsForBrowser += 1;
             }
           }

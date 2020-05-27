@@ -48,7 +48,6 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                       ...session,
                       debug: !!config.debug,
                       watch: !!config.watch,
-                      testIsolation: !!config.testIsolation,
                     } as RuntimeConfig);
                     return;
                   }

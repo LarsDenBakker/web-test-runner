@@ -1,6 +1,5 @@
 export interface RuntimeConfig {
-  testFiles: string[];
+  testFile: string;
   debug: boolean;
-  testIsolation: boolean;
   watch: boolean;
 }
