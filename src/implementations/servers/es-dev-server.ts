@@ -25,6 +25,9 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
           {
             port: config.port,
             nodeResolve: true,
+            debug: false,
+            logStartup: false,
+            logCompileErrors: false,
             middlewares: [
               async function middleware(ctx: Context, next: Next) {
                 if (ctx.path.startsWith('/wtr/')) {

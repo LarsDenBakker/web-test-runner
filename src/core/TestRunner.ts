@@ -65,20 +65,25 @@ export class TestRunner {
 
     this.reporter.reportStart(this.serverAddress);
 
+    try {
+      await this.config.server.start({
+        config: this.config,
+        sessions: this.manager.sessions,
+        onSessionStarted: this.onSessionStarted,
+        onSessionFinished: this.onSessionFinished,
+        onRerunSessions: this.onRerunSessions,
+      });
+    } catch (e) {
+      console.log('Something went wrong while trying to start the server.\n\n', e);
+      process.exit(1);
+    }
+
     this.updateTestProgressIntervalId = setInterval(() => {
       this.updateTestProgress();
     }, 500);
     this.updateTestProgress();
 
     const sessionsArray = Array.from(this.manager.sessions.values());
-    await this.config.server.start({
-      config: this.config,
-      sessions: this.manager.sessions,
-      onSessionStarted: this.onSessionStarted,
-      onSessionFinished: this.onSessionFinished,
-      onRerunSessions: this.onRerunSessions,
-    });
-
     const testRun = this.createTestRun(sessionsArray);
     this.runTests(testRun);
   }
