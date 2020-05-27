@@ -59,6 +59,24 @@ function renderProgressBar(finished: number, total: number) {
   return progressBar;
 }
 
+function getProgressReport(
+  name: string,
+  minWidth: number,
+  finishedFiles: number,
+  testFiles: number,
+  passedTests: number,
+  failedTests: number
+) {
+  const testResults = `${chalk.green(`${passedTests} passed`)}, ${chalk.red(
+    `${failedTests} failed`
+  )}`;
+  const progressBar = `${renderProgressBar(
+    finishedFiles,
+    testFiles
+  )} ${finishedFiles}/${testFiles} test files`;
+  return `${`${name}:`.padEnd(minWidth)} ${progressBar} | ${testResults}`;
+}
+
 export function getTestProgressReport(config: TestRunnerConfig, args: TestProgressArgs) {
   const {
     browserNames,
@@ -84,35 +102,65 @@ export function getTestProgressReport(config: TestRunnerConfig, args: TestProgre
   }
   entries.push('');
 
-  const longestBrowserLength = browserNames.sort((a, b) => b.length - a.length)[0].length + 1;
+  const passedTests = new Set<string>();
+  const failedTests = new Set<string>();
+  const finishedFiles = new Set<string>();
+  const browserProgressEntries: string[] = [];
+
+  const minWidth = browserNames.sort((a, b) => b.length - a.length)[0].length + 1;
   for (const browser of browserNames) {
     const sessions = sessionsByBrowser.get(browser)!;
-    const finished = sessions.reduce(
-      (all, s) => (s.status === SessionStatuses.FINISHED ? all + s.testFiles.length : all),
-      0
-    );
-    const progressBar = `${renderProgressBar(finished, testFiles.length)} ${finished}/${
-      testFiles.length
-    } test files`;
+    let finishedFilesForBrowser = 0;
+    let passedTestsForBrowser = 0;
+    let failedTestsForBrowser = 0;
 
-    let totalSucceeded = 0;
-    let totalFailed = 0;
     for (const session of sessions) {
-      if (session.result) {
-        for (const test of session.result.tests) {
-          if (test.passed) {
-            totalSucceeded += 1;
-          } else {
-            totalFailed += 1;
+      if (session.status === SessionStatuses.FINISHED) {
+        for (const f of session.testFiles) {
+          finishedFiles.add(f);
+          finishedFilesForBrowser += 1;
+        }
+
+        if (session.result) {
+          for (const test of session.result.tests) {
+            if (test.passed) {
+              passedTests.add(test.name);
+              passedTestsForBrowser += 1;
+            } else {
+              failedTests.add(test.name);
+              failedTestsForBrowser += 1;
+            }
           }
         }
       }
     }
-    const testResults = `${chalk.green(`${totalSucceeded} passed`)}, ${chalk.red(
-      `${totalFailed} failed`
-    )}`;
 
-    entries.push(`${`${browser}:`.padEnd(longestBrowserLength)} ${progressBar} | ${testResults}`);
+    browserProgressEntries.push(
+      getProgressReport(
+        browser,
+        minWidth,
+        finishedFilesForBrowser,
+        testFiles.length,
+        passedTestsForBrowser,
+        failedTestsForBrowser
+      )
+    );
+  }
+
+  if (browserNames.length > 1) {
+    entries.push(
+      getProgressReport(
+        'Total',
+        minWidth,
+        finishedFiles.size,
+        testFiles.length,
+        passedTests.size,
+        failedTests.size
+      )
+    );
+    entries.push(...browserProgressEntries.map((text) => ({ text: text, indent: 2 })));
+  } else {
+    entries.push(...browserProgressEntries);
   }
 
   entries.push('');
