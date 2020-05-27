@@ -30,7 +30,7 @@ export function getBrowserLogsReport(testFile: string, sessions: TestSession[]) 
   }
 
   if (commonLogs.length > 0 || logsByBrowser.size > 0) {
-    entries.push({ text: chalk.underline(testFile), indent: 2 });
+    entries.push(chalk.underline(testFile));
   }
 
   if (commonLogs.length > 0) {
