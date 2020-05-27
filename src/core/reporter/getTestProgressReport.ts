@@ -1,6 +1,5 @@
 import chalk from 'chalk';
-import { TestSuiteResult, TestResult } from '../TestSessionResult';
-import { TerminalEntry, terminalLogger } from './terminalLogger';
+import { TerminalEntry } from './TerminalLogger';
 import { TestSession, SessionStatuses } from '../TestSession';
 import { TestRunnerConfig } from '../TestRunnerConfig';
 import { TestRun } from '../TestRun';
@@ -60,34 +59,7 @@ function renderProgressBar(finished: number, total: number) {
   return progressBar;
 }
 
-function getSucceededAndFailed({
-  suites,
-  tests,
-}: {
-  suites: TestSuiteResult[];
-  tests: TestResult[];
-}) {
-  let failed = 0;
-  let succeeded = 0;
-
-  for (const test of tests) {
-    if (test.error) {
-      failed += 1;
-    } else {
-      succeeded += 1;
-    }
-  }
-
-  for (const suite of suites) {
-    const result = getSucceededAndFailed(suite);
-    failed += result.failed;
-    succeeded += result.succeeded;
-  }
-
-  return { failed, succeeded };
-}
-
-export function reportTestProgress(config: TestRunnerConfig, args: TestProgressArgs) {
+export function getTestProgressReport(config: TestRunnerConfig, args: TestProgressArgs) {
   const {
     browserNames,
     testRun,
@@ -96,26 +68,19 @@ export function reportTestProgress(config: TestRunnerConfig, args: TestProgressA
     initializingSessions,
     runningSessions,
     startTime,
-    finishedOnce,
   } = args;
 
   const entries: TerminalEntry[] = [];
   if (testRun && initializingSessions.size === 0 && runningSessions.size === 0) {
     if (config.watch) {
-      entries.push(chalk.bold(`Finished test run ${testRun.number}, watching for file changes...`));
+      entries.push(chalk.bold(`Finished running tests, watching for file changes...`));
     } else if (config.debug) {
-      entries.push(
-        chalk.bold(`Finished test run ${testRun.number}, waiting for browser reload...`)
-      );
+      entries.push(chalk.bold(`Finished running tests, waiting for browser reload...`));
     } else {
       entries.push(chalk.bold('Finished running tests!'));
     }
   } else {
-    if (config.watch || config.debug) {
-      entries.push(chalk.bold(`Running test run ${testRun?.number || 1}...`));
-    } else {
-      entries.push(chalk.bold('Running tests:'));
-    }
+    entries.push(chalk.bold('Running tests...'));
   }
   entries.push('');
 
@@ -134,9 +99,13 @@ export function reportTestProgress(config: TestRunnerConfig, args: TestProgressA
     let totalFailed = 0;
     for (const session of sessions) {
       if (session.result) {
-        const total = getSucceededAndFailed(session.result);
-        totalSucceeded += total.succeeded;
-        totalFailed += total.failed;
+        for (const test of session.result.tests) {
+          if (test.passed) {
+            totalSucceeded += 1;
+          } else {
+            totalFailed += 1;
+          }
+        }
       }
     }
     const testResults = `${chalk.green(`${totalSucceeded} passed`)}, ${chalk.red(
@@ -152,5 +121,5 @@ export function reportTestProgress(config: TestRunnerConfig, args: TestProgressA
     entries.push('');
   }
 
-  terminalLogger.renderDynamic(entries);
+  return entries;
 }

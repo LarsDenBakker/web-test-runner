@@ -1,12 +1,7 @@
 import chalk from 'chalk';
 import * as diff from 'diff';
-import {
-  TestSessionResult,
-  TestResultError,
-  TestSuiteResult,
-  TestResult,
-} from '../TestSessionResult';
-import { TerminalEntry, terminalLogger } from './terminalLogger';
+import { TestResultError } from '../TestSessionResult';
+import { TerminalEntry } from './TerminalLogger';
 import { TestSession } from '../TestSession';
 
 function renderDiff(actual: string, expected: string) {
@@ -56,7 +51,7 @@ function createFailedOnBrowsers(allBrowserNames: string[], failedBrowsers: strin
   return ` (failed on ${browserString})`;
 }
 
-export function reportFileErrors(
+export function getFileErrorsReport(
   testFile: string,
   allBrowserNames: string[],
   favoriteBrowser: string,
@@ -81,41 +76,26 @@ export function reportFileErrors(
     entries.push({ text: renderError(failedImport.error), indent: 2 });
   }
 
-  const errorsByTestAndBrowser = new Map<string, Map<string, TestResultError>>();
+  const testErrorsPerBrowser = new Map<string, Map<string, TestResultError>>();
 
   for (const session of failedSessions) {
-    function handleTests(prefix: string, tests: TestResult[]) {
-      for (const test of tests) {
-        if (test.error) {
-          const name = `${prefix}${test.name}`;
-          let errorsForTest = errorsByTestAndBrowser.get(name);
-          if (!errorsForTest) {
-            errorsForTest = new Map<string, TestResultError>();
-            errorsByTestAndBrowser.set(name, errorsForTest);
-          }
-          errorsForTest.set(session.browserName, test.error);
+    for (const test of session.result!.tests) {
+      if (test.error) {
+        let testErrorsForBrowser = testErrorsPerBrowser.get(test.name);
+        if (!testErrorsForBrowser) {
+          testErrorsForBrowser = new Map<string, TestResultError>();
+          testErrorsPerBrowser.set(test.name, testErrorsForBrowser);
         }
+        testErrorsForBrowser.set(session.browserName, test.error!);
       }
     }
-
-    function handleSuite(prefix: string, suite: TestSuiteResult | TestSessionResult) {
-      handleTests(prefix, suite.tests);
-
-      for (const childSuite of suite.suites) {
-        const newPrefix = `${prefix}${childSuite.name} > `;
-        handleTests(newPrefix, childSuite.tests);
-        handleSuite(newPrefix, childSuite);
-      }
-    }
-
-    handleSuite('', session.result!);
   }
 
-  if (errorsByTestAndBrowser.size > 0) {
-    for (const [name, errorByBrowser] of errorsByTestAndBrowser) {
-      const failedBrowsers = Array.from(errorByBrowser.keys());
+  if (testErrorsPerBrowser.size > 0) {
+    for (const [name, errorsForBrowser] of testErrorsPerBrowser) {
+      const failedBrowsers = Array.from(errorsForBrowser.keys());
       const favoriteError =
-        errorByBrowser.get(favoriteBrowser) ?? errorByBrowser.get(failedBrowsers[0])!;
+        errorsForBrowser.get(favoriteBrowser) ?? errorsForBrowser.get(failedBrowsers[0])!;
       const failedOn = createFailedOnBrowsers(allBrowserNames, failedBrowsers);
 
       entries.push({ text: `${name}${failedOn}`, indent: 2 });
@@ -124,5 +104,5 @@ export function reportFileErrors(
     }
   }
 
-  terminalLogger.renderStatic(entries);
+  return entries;
 }

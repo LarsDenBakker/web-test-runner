@@ -1,7 +1,6 @@
 import { SessionStatuses, TestSession } from './TestSession';
 import { TestRunnerConfig } from './TestRunnerConfig';
 import { createTestSessions } from './utils';
-import { terminalLogger } from './reporter/terminalLogger';
 import { BrowserLauncher } from './BrowserLauncher';
 import { TestSessionResult } from './TestSessionResult';
 import { TestSessionManager } from './TestSessionManager';
@@ -64,7 +63,7 @@ export class TestRunner {
       this.manager.updateSession(session);
     }
 
-    terminalLogger.start(this.serverAddress);
+    this.reporter.reportStart(this.serverAddress);
 
     this.updateTestProgressIntervalId = setInterval(() => {
       this.updateTestProgress();
@@ -92,7 +91,12 @@ export class TestRunner {
     }
 
     if (this.config.watch || this.config.debug) {
-      this.reporter.reportTestRunStart(testRun);
+      this.reporter.reportTestRunStart(
+        testRun,
+        this.browserNames,
+        this.favoriteBrowser!,
+        this.manager.sessionsByTestFile
+      );
     }
 
     for (const browser of this.browsers) {
@@ -158,18 +162,13 @@ export class TestRunner {
 
     for (const testFile of session.testFiles) {
       const sessionsForTestFile = this.manager.sessionsByTestFile.get(testFile)!;
-      const finishedSessionsForTestFile =
-        this.manager.finishedSessionsByTestFile.get(testFile) || [];
-
-      if (sessionsForTestFile.length === finishedSessionsForTestFile.length) {
-        this.reporter.reportTestFileResults(
-          this.currentTestRun!,
-          testFile,
-          this.browserNames,
-          this.favoriteBrowser!,
-          finishedSessionsForTestFile
-        );
-      }
+      this.reporter.reportTestFileResults(
+        this.currentTestRun!,
+        testFile,
+        this.browserNames,
+        this.favoriteBrowser!,
+        sessionsForTestFile
+      );
     }
 
     const finishedAll = this.manager.runningSessions.size === 0;
@@ -188,7 +187,7 @@ export class TestRunner {
           clearInterval(this.updateTestProgressIntervalId);
         }
         await this.stop();
-        terminalLogger.stop();
+        this.reporter.reportEnd();
         process.exit(this.manager.failedSessions.size > 0 ? 1 : 0);
       });
     }

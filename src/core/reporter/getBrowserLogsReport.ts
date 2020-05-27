@@ -1,8 +1,8 @@
 import chalk from 'chalk';
-import { TerminalEntry, terminalLogger } from './terminalLogger';
+import { TerminalEntry } from './TerminalLogger';
 import { TestSession } from '../TestSession';
 
-export function reportBrowserLogs(testFile: string, sessions: TestSession[]) {
+export function getBrowserLogsReport(testFile: string, sessions: TestSession[]) {
   const entries: TerminalEntry[] = [];
   const commonLogs: string[] = [];
   const logsByBrowser = new Map<string, string[]>();
@@ -47,5 +47,5 @@ export function reportBrowserLogs(testFile: string, sessions: TestSession[]) {
     }
   }
 
-  terminalLogger.renderStatic(entries);
+  return entries;
 }

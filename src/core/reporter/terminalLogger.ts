@@ -1,5 +1,7 @@
 import logUpdate from 'log-update';
 
+const CLEAR_COMMAND = process.platform === 'win32' ? '\x1B[2J\x1B[0f' : '\x1B[2J\x1B[3J\x1B[H';
+
 export type TerminalEntry = string | IndentedTerminalEntry;
 
 export interface IndentedTerminalEntry {
@@ -30,7 +32,7 @@ function buildLogString(entries: TerminalEntry[], serverAddress: RegExp) {
   return str;
 }
 
-class TerminalLogger {
+export class TerminalLogger {
   private originalFunctions: Partial<Record<keyof Console, Function>> = {};
   private previousDynamic: TerminalEntry[] = [];
   private started = false;
@@ -61,7 +63,7 @@ class TerminalLogger {
             target.apply(thisArg, argArray);
 
             // rerender dynamic logs
-            this.rerenderDynamic();
+            this.relogDynamic();
           },
         });
       }
@@ -78,7 +80,12 @@ class TerminalLogger {
     this.started = false;
   }
 
-  renderStatic(entriesOrEntry: TerminalEntry | TerminalEntry[]) {
+  restart() {
+    process.stdout.write(CLEAR_COMMAND);
+    this.relogDynamic();
+  }
+
+  logStatic(entriesOrEntry: TerminalEntry | TerminalEntry[]) {
     const entries = Array.isArray(entriesOrEntry) ? entriesOrEntry : [entriesOrEntry];
     if (entries.length === 0) {
       return;
@@ -86,7 +93,7 @@ class TerminalLogger {
     console.log(buildLogString(entries, this.serverAddress!));
   }
 
-  renderDynamic(entriesOrEntry: TerminalEntry | TerminalEntry[]) {
+  logDynamic(entriesOrEntry: TerminalEntry | TerminalEntry[]) {
     const entries = Array.isArray(entriesOrEntry) ? entriesOrEntry : [entriesOrEntry];
     if (!this.started) {
       return;
@@ -96,9 +103,7 @@ class TerminalLogger {
     logUpdate(buildLogString(entries, this.serverAddress!));
   }
 
-  rerenderDynamic() {
-    this.renderDynamic(this.previousDynamic);
+  private relogDynamic() {
+    this.logDynamic(this.previousDynamic);
   }
 }
-
-export const terminalLogger = new TerminalLogger();

@@ -5,8 +5,9 @@ import net from 'net';
 import parse from 'co-body';
 import chokidar from 'chokidar';
 import { Server } from '../../core/Server';
-import { RuntimeConfig, BrowserSessionResult } from '../../core/runtime/types';
+import { RuntimeConfig } from '../../core/runtime/types';
 import { rerunSessionsMiddleware } from './rerun-sessions-middleware';
+import { TestSessionResult } from '../../core/TestSessionResult';
 
 export function createEsDevServer(devServerConfig: object = {}): Server {
   let server: net.Server;
@@ -58,7 +59,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
 
                   if (command === 'session-finished') {
                     ctx.status = 200;
-                    const result = (await parse.json(ctx)) as BrowserSessionResult;
+                    const result = (await parse.json(ctx)) as TestSessionResult;
                     onSessionFinished(sessionId, result);
                     return;
                   }
