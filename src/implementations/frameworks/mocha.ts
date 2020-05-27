@@ -54,12 +54,14 @@ logUncaughtErrors();
           testResults.push({
             name,
             passed: test.isPassed(),
-            error: err && {
-              message: err.message,
-              stack: err.stack,
-              expected: err.expected,
-              actual: err.actual,
-            },
+            error: err
+              ? {
+                  message: err.message,
+                  stack: err.stack,
+                  expected: err.expected,
+                  actual: err.actual,
+                }
+              : undefined,
           });
         }
       }
@@ -69,7 +71,6 @@ logUncaughtErrors();
 
         for (const childSuite of suite.suites) {
           const newPrefix = `${prefix}${childSuite.title} > `;
-          iterateTests(newPrefix, childSuite.tests);
           iterateSuite(newPrefix, childSuite);
         }
       }

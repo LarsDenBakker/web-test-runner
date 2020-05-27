@@ -20,11 +20,20 @@ function postJSON(url: string, body: object) {
 
 const logs: string[] = [];
 
+function stringify(obj: object) {
+  try {
+    return JSON.stringify(obj);
+  } catch (error) {
+    // some objects can't be stringified, such as circular objects
+    return obj;
+  }
+}
+
 export function captureConsoleOutput() {
   for (const level of ['log', 'error', 'debug', 'warn'] as (keyof Console)[]) {
     const original: Function = console[level];
     console[level] = (...args: any[]) => {
-      logs.push(args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' '));
+      logs.push(args.map((a) => (typeof a === 'object' ? stringify(a) : a)).join(' '));
       original.apply(console, args);
     };
   }

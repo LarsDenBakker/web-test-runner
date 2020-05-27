@@ -29,14 +29,16 @@ export function rerunSessionsMiddleware({
 
     // search dependants of changed files for test HTML files, and reload only those
     for (const file of pendingChangedFiles) {
-      for (const dependant of depGraph.dependantsOf(file)) {
-        if (dependant.startsWith('\0')) {
-          const url = new URL(dependant.substring(1));
-          const id = url.searchParams.get(PARAM_SESSION_ID);
-          if (!id) {
-            throw new Error('Missing session id parameter');
+      if (depGraph.hasNode(file)) {
+        for (const dependant of depGraph.dependantsOf(file)) {
+          if (dependant.startsWith('\0')) {
+            const url = new URL(dependant.substring(1));
+            const id = url.searchParams.get(PARAM_SESSION_ID);
+            if (!id) {
+              throw new Error('Missing session id parameter');
+            }
+            sessionsToRerun.add(id);
           }
-          sessionsToRerun.add(id);
         }
       }
     }
