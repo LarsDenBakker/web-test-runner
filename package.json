@@ -14,6 +14,7 @@
     "test:debug": "npm run test -- --debug",
     "test:watch": "npm run test -- --watch",
     "test:404": "npm run test:bare \"demo/test/*404*.test.js\"",
+    "test:logs": "npm run test:bare \"demo/test/*log*.test.js\"",
     "test:playwright": "npm run test -- --config \"demo/playwright.config.js\"",
     "test:browserstack": "npm run test -- --config \"demo/browserstack.config.js\"",
     "release": "npm publish",
