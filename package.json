@@ -1,12 +1,13 @@
 {
   "name": "web-test-runner",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "",
   "main": "dist/core/runtime/web-test-runner.js",
   "scripts": {
     "build": "rm -rf dist && tsc && tsc --build tsconfig-runtime.json",
     "build:watch": "rm -rf dist && tsc --watch & tsc --build tsconfig-runtime.json --watch",
-    "test": "export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js",
+    "test": "export LOCAL_TESTING=true && node dist/core/cli.js demo/test/*.test.js",
+    "test:many": "export LOCAL_TESTING=true && node dist/core/cli.js demo/test/many/**/*.test.js",
     "test:debug": "export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js --debug",
     "test:fail": "export LOCAL_TESTING=true && node dist/core/cli.js demo/test/errors.test.js",
     "test:pass": "export LOCAL_TESTING=true && node dist/core/cli.js demo/test/c.test.js",
@@ -66,11 +67,13 @@
   },
   "devDependencies": {
     "@bundled-es-modules/chai": "^4.2.2",
+    "@types/chai": "^4.2.11",
     "@types/co-body": "^5.1.0",
     "@types/command-line-args": "^5.0.0",
     "@types/globby": "^9.1.0",
     "@types/mocha": "^7.0.2",
     "@types/puppeteer": "^2.1.0",
+    "chai": "^4.2.0",
     "lodash-es": "^4.17.15",
     "typescript": "^3.8.3"
   }
