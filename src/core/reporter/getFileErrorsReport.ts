@@ -96,7 +96,7 @@ export function getFileErrorsReport(
 ) {
   const entries: TerminalEntry[] = [];
 
-  entries.push(testFile);
+  entries.push(`${chalk.underline(testFile)}:`);
 
   const sessionsThatFailedToImport = failedSessions.filter((s) =>
     s.result!.failedImports.some((imp) => imp.file === testFile)
