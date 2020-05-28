@@ -25,7 +25,8 @@ export function dependencyGraphMiddleware({
   const depGraph = new DepGraph({ circular: true });
   let pendingChangedFiles = new Set<string>();
 
-  function getSessionIdForFile(file: string) {
+  function getSessionIdsForFile(file: string) {
+    const ids = new Set<string>();
     if (depGraph.hasNode(file)) {
       for (const dependant of depGraph.dependantsOf(file)) {
         if (dependant.startsWith('\0')) {
@@ -34,10 +35,11 @@ export function dependencyGraphMiddleware({
           if (!id) {
             throw new Error('Missing session id parameter');
           }
-          return id;
+          ids.add(id);
         }
       }
     }
+    return ids;
   }
 
   function syncRerunSessions() {
@@ -45,8 +47,7 @@ export function dependencyGraphMiddleware({
 
     // search dependants of changed files for test HTML files, and reload only those
     for (const file of pendingChangedFiles) {
-      const id = getSessionIdForFile(file);
-      if (id) {
+      for (const id of getSessionIdsForFile(file)) {
         sessionsToRerun.add(id);
       }
     }
@@ -98,8 +99,8 @@ export function dependencyGraphMiddleware({
 
     if (ctx.status === 404) {
       const filePath = path.join(rootDir, toFilePath(ctx.path));
-      const sessionId = getSessionIdForFile(filePath);
-      if (sessionId) {
+
+      for (const sessionId of getSessionIdsForFile(filePath)) {
         onRequest404(sessionId, ctx.url.substring(1));
       }
     }
