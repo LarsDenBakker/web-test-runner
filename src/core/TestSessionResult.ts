@@ -22,4 +22,5 @@ export interface TestSessionResult {
   tests: TestResult[];
   logs: string[];
   failedImports: FailedImport[];
+  request404s: Set<string>;
 }

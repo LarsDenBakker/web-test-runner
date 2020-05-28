@@ -1,4 +1,4 @@
-import { RuntimeConfig } from './types';
+import { RuntimeConfig, FrameworkTestSessionResult, BrowserTestSessionResult } from './types';
 import { TestSessionResult, TestResultError } from '../TestSessionResult';
 
 const PARAM_SESSION_ID = 'wtr-session-id';
@@ -74,10 +74,8 @@ export async function sessionStarted() {
   await fetch(`/wtr/${sessionId}/session-started`, { method: 'POST' });
 }
 
-interface TestFrameworkResult extends Omit<TestSessionResult, 'logs'> {}
-
-export async function sessionFinished(result: TestFrameworkResult): Promise<void> {
-  const sessionResult: TestSessionResult = { logs, ...result };
+export async function sessionFinished(result: FrameworkTestSessionResult): Promise<void> {
+  const sessionResult: BrowserTestSessionResult = { logs, ...result };
   await Promise.all(Array.from(pendingLogs)).catch(() => {});
   await postJSON(`/wtr/${sessionId}/session-finished`, sessionResult);
 }

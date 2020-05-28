@@ -70,7 +70,8 @@ export function renderError(err: TestResultError, serverAddress: string): string
   if (typeof err.expected === 'string' && typeof err.actual === 'string') {
     errorString += `error: ${chalk.red(err.message)}\n${renderDiff(err.actual, err.expected)}`;
   } else {
-    errorString += errorLocation || !err.stack ? `error: ${chalk.red(err.message)}` : `${chalk.red(err.stack)}`;
+    errorString +=
+      errorLocation || !err.stack ? `error: ${chalk.red(err.message)}` : `${chalk.red(err.stack)}`;
   }
 
   return errorString;
@@ -95,8 +96,6 @@ export function getFileErrorsReport(
   failedSessions: TestSession[]
 ) {
   const entries: TerminalEntry[] = [];
-
-  entries.push(`${chalk.underline(testFile)}:`);
 
   const sessionsThatFailedToImport = failedSessions.filter((s) =>
     s.result!.failedImports.some((imp) => imp.file === testFile)

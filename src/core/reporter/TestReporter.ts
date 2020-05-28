@@ -1,11 +1,10 @@
 import { TestRun } from '../TestRun';
 import { TestRunnerConfig } from '../TestRunnerConfig';
 import { TestProgressArgs, getTestProgressReport } from './getTestProgressReport';
-import { getBrowserLogsReport } from './getBrowserLogsReport';
 import { getSessionErrorsReport } from './getSessionErrorsReport';
 import { TestSession, SessionStatuses } from '../TestSession';
 import { TerminalLogger } from './TerminalLogger';
-import { getFileErrorsReport } from './getFileErrorsReport';
+import { getTestFileReport } from './getTestFileReport';
 
 export class TestReporter {
   private reportedFilesByTestRun = new Map<number, Set<string>>();
@@ -54,22 +53,15 @@ export class TestReporter {
 
     if (!reportedFiles?.has(testFile)) {
       reportedFiles.add(testFile);
-      const failedSessions = sessionsForTestFile.filter((s) => !s.result!.passed);
-
-      if (failedSessions.length > 0) {
-        const fileErrorsReport = getFileErrorsReport(
+      this.logger.logStatic(
+        getTestFileReport(
           testFile,
           allBrowserNames,
           favoriteBrowser,
           this.serverAddress,
-          failedSessions
-        );
-
-        this.logger.logStatic(fileErrorsReport);
-      }
-
-      const browserLogs = getBrowserLogsReport(testFile, sessionsForTestFile);
-      this.logger.logStatic(browserLogs);
+          sessionsForTestFile
+        )
+      );
     }
   }
 

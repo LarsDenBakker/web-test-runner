@@ -1,12 +1,12 @@
-import { Plugin } from 'es-dev-server';
 import { DepGraph } from 'dependency-graph';
 import debounce from 'debounce';
 import path from 'path';
-import { Context, Middleware } from 'koa';
+import { Middleware } from 'koa';
 import { FSWatcher } from 'chokidar';
 import { PARAM_SESSION_ID } from '../../core/constants';
 
-export interface RerunSessionsMiddleware {
+export interface DependencyGraphMiddlewareArgs {
+  onRequest404: (sessionId: string, url: string) => void;
   onRerunSessions: (sessionIds: string[]) => void;
   rootDir: string;
   fileWatcher: FSWatcher;
@@ -16,30 +16,38 @@ function toFilePath(browserPath: string) {
   return browserPath.replace(new RegExp('/', 'g'), path.sep);
 }
 
-export function rerunSessionsMiddleware({
+export function dependencyGraphMiddleware({
   rootDir,
   fileWatcher,
+  onRequest404,
   onRerunSessions,
-}: RerunSessionsMiddleware): Middleware {
+}: DependencyGraphMiddlewareArgs): Middleware {
   const depGraph = new DepGraph({ circular: true });
   let pendingChangedFiles = new Set<string>();
+
+  function getSessionIdForFile(file: string) {
+    if (depGraph.hasNode(file)) {
+      for (const dependant of depGraph.dependantsOf(file)) {
+        if (dependant.startsWith('\0')) {
+          const url = new URL(dependant.substring(1));
+          const id = url.searchParams.get(PARAM_SESSION_ID);
+          if (!id) {
+            throw new Error('Missing session id parameter');
+          }
+          return id;
+        }
+      }
+    }
+  }
 
   function syncRerunSessions() {
     const sessionsToRerun = new Set<string>();
 
     // search dependants of changed files for test HTML files, and reload only those
     for (const file of pendingChangedFiles) {
-      if (depGraph.hasNode(file)) {
-        for (const dependant of depGraph.dependantsOf(file)) {
-          if (dependant.startsWith('\0')) {
-            const url = new URL(dependant.substring(1));
-            const id = url.searchParams.get(PARAM_SESSION_ID);
-            if (!id) {
-              throw new Error('Missing session id parameter');
-            }
-            sessionsToRerun.add(id);
-          }
-        }
+      const id = getSessionIdForFile(file);
+      if (id) {
+        sessionsToRerun.add(id);
       }
     }
 
@@ -59,7 +67,7 @@ export function rerunSessionsMiddleware({
   fileWatcher.addListener('change', onFileChanged);
   fileWatcher.addListener('unlink', onFileChanged);
 
-  return (ctx, next) => {
+  return async (ctx, next) => {
     let dependantUrl;
     let dependencyPath;
 
@@ -86,6 +94,14 @@ export function rerunSessionsMiddleware({
     depGraph.addNode(dependency);
     depGraph.addDependency(dependant, dependency);
 
-    return next();
+    await next();
+
+    if (ctx.status === 404) {
+      const filePath = path.join(rootDir, toFilePath(ctx.path));
+      const sessionId = getSessionIdForFile(filePath);
+      if (sessionId) {
+        onRequest404(sessionId, ctx.url.substring(1));
+      }
+    }
   };
 }

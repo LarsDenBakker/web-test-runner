@@ -1,4 +1,3 @@
-import chalk from 'chalk';
 import { TerminalEntry } from './TerminalLogger';
 import { TestSession } from '../TestSession';
 
@@ -13,7 +12,7 @@ export function getBrowserLogsReport(testFile: string, sessions: TestSession[]) 
       // for the first session, we always include all logs
       // for others we deduplicate logs, this way we can allow the same log
       // msg appearing multiple times while also deduplicating common logs
-      // between brwosers
+      // between browsers
       if (session === sessions[0] || !commonLogs.includes(log)) {
         if (allLogs.every((logs) => logs.includes(log))) {
           commonLogs.push(log);
@@ -27,10 +26,6 @@ export function getBrowserLogsReport(testFile: string, sessions: TestSession[]) 
         }
       }
     }
-  }
-
-  if (commonLogs.length > 0 || logsByBrowser.size > 0) {
-    entries.push(chalk.underline(testFile));
   }
 
   if (commonLogs.length > 0) {
