@@ -5,17 +5,41 @@ import net from 'net';
 import parse from 'co-body';
 import chokidar from 'chokidar';
 import { Server } from '../../core/Server';
-import { RuntimeConfig, BrowserSessionResult } from '../../core/runtime/types';
-import { rerunSessionsMiddleware } from './rerun-sessions-middleware';
+import { RuntimeConfig, BrowserTestSessionResult } from '../../core/runtime/types';
+import { dependencyGraphMiddleware } from './dependencyGraphMiddleware';
 
 export function createEsDevServer(devServerConfig: object = {}): Server {
   let server: net.Server;
 
   return {
-    async start({ config, sessions, onSessionStarted, onSessionFinished, onRerunSessions }) {
+    async start({
+      config,
+      sessions,
+      onSessionStarted,
+      onSessionFinished,
+      onRerunSessions: originalOnRerunSessions,
+    }) {
+      const request404sPerSession = new Map<string, Set<string>>();
       const testRunnerImport = process.env.LOCAL_TESTING
         ? config.testRunnerImport.replace('web-test-runner', '.')
         : config.testRunnerImport;
+
+      function onRerunSessions(sessionIds: string[]) {
+        for (const id of sessionIds) {
+          // clear stored 404s on reload
+          request404sPerSession.delete(id);
+        }
+        originalOnRerunSessions(sessionIds);
+      }
+
+      function onRequest404(sessionId: string, url: string) {
+        let request404sForSession = request404sPerSession.get(sessionId);
+        if (!request404sForSession) {
+          request404sForSession = new Set<string>();
+          request404sPerSession.set(sessionId, request404sForSession);
+        }
+        request404sForSession.add(url);
+      }
 
       const fileWatcher = chokidar.watch([]);
 
@@ -24,6 +48,9 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
           {
             port: config.port,
             nodeResolve: true,
+            debug: false,
+            logStartup: false,
+            logCompileErrors: false,
             middlewares: [
               async function middleware(ctx: Context, next: Next) {
                 if (ctx.path.startsWith('/wtr/')) {
@@ -44,7 +71,6 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                       ...session,
                       debug: !!config.debug,
                       watch: !!config.watch,
-                      testIsolation: !!config.testIsolation,
                     } as RuntimeConfig);
                     return;
                   }
@@ -58,26 +84,23 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
 
                   if (command === 'session-finished') {
                     ctx.status = 200;
-                    const result = (await parse.json(ctx)) as BrowserSessionResult;
-                    onSessionFinished(sessionId, result);
+                    const result = (await parse.json(ctx)) as BrowserTestSessionResult;
+                    onSessionFinished(sessionId, {
+                      ...result,
+                      request404s: request404sPerSession.get(sessionId) ?? new Set(),
+                    });
                     return;
                   }
                 }
 
-                await next();
-
-                // TODO: 404 logging
-                // if (ctx.status === 404) {
-                //   const cleanUrl = ctx.url.split('?')[0].split('#')[0];
-                //   if (path.extname(cleanUrl) && !cleanUrl.endsWith('favicon.ico')) {
-                //     logger.error(`Could not find file: .${ctx.url}`);
-                //   }
-                // }
+                return next();
               },
-              rerunSessionsMiddleware({
+
+              dependencyGraphMiddleware({
                 // TODO: Configurable cwd?
                 rootDir: process.cwd(),
                 fileWatcher,
+                onRequest404,
                 onRerunSessions,
               }),
             ],

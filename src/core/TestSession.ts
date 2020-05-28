@@ -11,7 +11,7 @@ export const SessionStatuses = {
 export interface TestSession {
   id: string;
   browserName: string;
-  testFiles: string[];
+  testFile: string;
   status: SessionStatus;
   result?: TestSessionResult;
 }

@@ -1,7 +1,6 @@
 import { SessionStatuses, TestSession } from './TestSession';
 import { TestRunnerConfig } from './TestRunnerConfig';
 import { createTestSessions } from './utils';
-import { terminalLogger } from './reporter/terminalLogger';
 import { BrowserLauncher } from './BrowserLauncher';
 import { TestSessionResult } from './TestSessionResult';
 import { TestSessionManager } from './TestSessionManager';
@@ -54,17 +53,26 @@ export class TestRunner {
         return n.includes('chrome') || n.includes('chromium') || n.includes('firefox');
       }) ?? this.browserNames[0];
 
-    const createdSessions = createTestSessions(
-      this.browserNames,
-      this.testFiles,
-      !!this.config.testIsolation
-    );
+    const createdSessions = createTestSessions(this.browserNames, this.testFiles);
 
     for (const session of createdSessions.values()) {
       this.manager.updateSession(session);
     }
 
-    terminalLogger.start(this.serverAddress);
+    this.reporter.reportStart(this.serverAddress);
+
+    try {
+      await this.config.server.start({
+        config: this.config,
+        sessions: this.manager.sessions,
+        onSessionStarted: this.onSessionStarted,
+        onSessionFinished: this.onSessionFinished,
+        onRerunSessions: this.onRerunSessions,
+      });
+    } catch (e) {
+      console.log('Something went wrong while trying to start the server.\n\n', e);
+      process.exit(1);
+    }
 
     this.updateTestProgressIntervalId = setInterval(() => {
       this.updateTestProgress();
@@ -72,14 +80,6 @@ export class TestRunner {
     this.updateTestProgress();
 
     const sessionsArray = Array.from(this.manager.sessions.values());
-    await this.config.server.start({
-      config: this.config,
-      sessions: this.manager.sessions,
-      onSessionStarted: this.onSessionStarted,
-      onSessionFinished: this.onSessionFinished,
-      onRerunSessions: this.onRerunSessions,
-    });
-
     const testRun = this.createTestRun(sessionsArray);
     this.runTests(testRun);
   }
@@ -92,7 +92,12 @@ export class TestRunner {
     }
 
     if (this.config.watch || this.config.debug) {
-      this.reporter.reportTestRunStart(testRun);
+      this.reporter.reportTestRunStart(
+        testRun,
+        this.browserNames,
+        this.favoriteBrowser!,
+        this.manager.sessionsByTestFile
+      );
     }
 
     for (const browser of this.browsers) {
@@ -156,21 +161,14 @@ export class TestRunner {
     }
     this.manager.updateSession({ ...session, status: SessionStatuses.FINISHED, result });
 
-    for (const testFile of session.testFiles) {
-      const sessionsForTestFile = this.manager.sessionsByTestFile.get(testFile)!;
-      const finishedSessionsForTestFile =
-        this.manager.finishedSessionsByTestFile.get(testFile) || [];
-
-      if (sessionsForTestFile.length === finishedSessionsForTestFile.length) {
-        this.reporter.reportTestFileResults(
-          this.currentTestRun!,
-          testFile,
-          this.browserNames,
-          this.favoriteBrowser!,
-          finishedSessionsForTestFile
-        );
-      }
-    }
+    const sessionsForTestFile = this.manager.sessionsByTestFile.get(session.testFile)!;
+    this.reporter.reportTestFileResults(
+      this.currentTestRun!,
+      session.testFile,
+      this.browserNames,
+      this.favoriteBrowser!,
+      sessionsForTestFile
+    );
 
     const finishedAll = this.manager.runningSessions.size === 0;
     if (finishedAll) {
@@ -188,7 +186,7 @@ export class TestRunner {
           clearInterval(this.updateTestProgressIntervalId);
         }
         await this.stop();
-        terminalLogger.stop();
+        this.reporter.reportEnd();
         process.exit(this.manager.failedSessions.size > 0 ? 1 : 0);
       });
     }

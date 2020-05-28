@@ -19,8 +19,8 @@ export async function runTests(config: TestRunnerConfig) {
     process.exit(1);
   }
 
-  if (config.testIsolation && config.debug && testFiles.length !== 1) {
-    console.error('Cannot debug one than more test file when test isolation is enabled');
+  if (config.debug && testFiles.length !== 1) {
+    console.error('Cannot debug whenn running more than one test file.');
     process.exit(1);
   }
 

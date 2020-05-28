@@ -1,20 +1,11 @@
-import { TestSuiteResult, TestResult, TestResultError, FailedImport } from '../TestSessionResult';
+import { TestSessionResult } from '../TestSessionResult';
 
 export interface RuntimeConfig {
-  testFiles: string[];
+  testFile: string;
   debug: boolean;
-  testIsolation: boolean;
   watch: boolean;
 }
 
-export interface TestFrameworkResult {
-  succeeded: boolean;
-  error?: TestResultError;
-  failedImports: FailedImport[];
-  suites: TestSuiteResult[];
-  tests: TestResult[];
-}
+export interface FrameworkTestSessionResult extends Omit<BrowserTestSessionResult, 'logs'> {}
 
-export interface BrowserSessionResult extends TestFrameworkResult {
-  logs: string[];
-}
+export interface BrowserTestSessionResult extends Omit<TestSessionResult, 'request404s'> {}

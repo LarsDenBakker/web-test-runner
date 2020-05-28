@@ -1,24 +1,36 @@
 import { TestRun } from '../TestRun';
 import { TestRunnerConfig } from '../TestRunnerConfig';
-import { TestProgressArgs, reportTestProgress } from './reportTestProgress';
-import { reportFileErrors } from './reportFileErrors';
-import { reportBrowserLogs } from './reportBrowserLogs';
-import { reportSessionErrors } from './reportSessionErrors';
-import { TestSession } from '../TestSession';
-import { terminalLogger } from './terminalLogger';
-import chalk from 'chalk';
-
-const formatTime = (nr: number) => String(nr).padStart(2, '0');
+import { TestProgressArgs, getTestProgressReport } from './getTestProgressReport';
+import { getSessionErrorsReport } from './getSessionErrorsReport';
+import { TestSession, SessionStatuses } from '../TestSession';
+import { TerminalLogger } from './TerminalLogger';
+import { getTestFileReport } from './getTestFileReport';
 
 export class TestReporter {
   private reportedFilesByTestRun = new Map<number, Set<string>>();
+  private logger = new TerminalLogger();
+  private serverAddress = '';
 
-  reportTestRunStart(testRun: TestRun) {
-    const date = new Date(testRun.startTime);
-    const startTime = `${formatTime(date.getHours())}:${date.getMinutes()}:${formatTime(
-      date.getSeconds()
-    )}`;
-    terminalLogger.renderStatic(`\n===== Test Run ${testRun.number} (${startTime}) =====\n`);
+  reportStart(serverAddress: string) {
+    this.serverAddress = serverAddress;
+    this.logger.start(serverAddress);
+  }
+
+  reportTestRunStart(
+    testRun: TestRun,
+    allBrowserNames: string[],
+    favoriteBrowser: string,
+    sessionsByTestFile: Map<string, TestSession[]>
+  ) {
+    // Restart terminal
+    this.logger.restart();
+
+    // Log results of test files that are not being re-run
+    for (const [testFile, sessions] of sessionsByTestFile) {
+      if (!testRun.sessions.some((s) => s.testFile === testFile)) {
+        this.reportTestFileResults(testRun, testFile, allBrowserNames, favoriteBrowser, sessions);
+      }
+    }
   }
 
   reportTestFileResults(
@@ -26,8 +38,13 @@ export class TestReporter {
     testFile: string,
     allBrowserNames: string[],
     favoriteBrowser: string,
-    finishedSessions: TestSession[]
+    sessionsForTestFile: TestSession[]
   ) {
+    const allFinished = sessionsForTestFile.every((s) => s.status === SessionStatuses.FINISHED);
+    if (!allFinished) {
+      return;
+    }
+
     let reportedFiles = this.reportedFilesByTestRun.get(testRun.number);
     if (!reportedFiles) {
       reportedFiles = new Set();
@@ -36,23 +53,29 @@ export class TestReporter {
 
     if (!reportedFiles?.has(testFile)) {
       reportedFiles.add(testFile);
-      const failedSessions = finishedSessions.filter((s) => !s.result!.succeeded);
-
-      if (failedSessions.length > 0) {
-        reportFileErrors(testFile, allBrowserNames, favoriteBrowser, failedSessions);
-      } else {
-        terminalLogger.renderStatic({ text: chalk.green('All tests passed!'), indent: 2 });
-      }
-
-      reportBrowserLogs(testFile, finishedSessions);
+      this.logger.logStatic(
+        getTestFileReport(
+          testFile,
+          allBrowserNames,
+          favoriteBrowser,
+          this.serverAddress,
+          sessionsForTestFile
+        )
+      );
     }
   }
 
   reportSessionErrors(failedSessions: Map<string, TestSession>) {
-    reportSessionErrors(failedSessions);
+    const sessionErrorsReport = getSessionErrorsReport(failedSessions, this.serverAddress);
+    this.logger.logStatic(sessionErrorsReport);
   }
 
   reportTestProgress(config: TestRunnerConfig, args: TestProgressArgs) {
-    reportTestProgress(config, args);
+    const progressReport = getTestProgressReport(config, args);
+    this.logger.logDynamic(progressReport);
+  }
+
+  reportEnd() {
+    this.logger.stop();
   }
 }

@@ -11,5 +11,4 @@ export interface TestRunnerConfig {
   testRunnerHtml?: (config: TestRunnerConfig) => string;
   watch?: boolean;
   debug?: boolean;
-  testIsolation?: boolean;
 }

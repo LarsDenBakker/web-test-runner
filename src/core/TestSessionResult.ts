@@ -12,20 +12,15 @@ export interface TestResultError {
 
 export interface TestResult {
   name: string;
+  passed: boolean;
   error?: TestResultError;
-}
-
-export interface TestSuiteResult {
-  name: string;
-  suites: TestSuiteResult[];
-  tests: TestResult[];
 }
 
 export interface TestSessionResult {
-  succeeded: boolean;
+  passed: boolean;
   error?: TestResultError;
+  tests: TestResult[];
   logs: string[];
   failedImports: FailedImport[];
-  suites: TestSuiteResult[];
-  tests: TestResult[];
+  request404s: Set<string>;
 }

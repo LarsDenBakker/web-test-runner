@@ -1,5 +1,5 @@
-import { RuntimeConfig, TestFrameworkResult, BrowserSessionResult } from './types';
-import { TestSessionResult, TestSuiteResult, TestResultError } from '../TestSessionResult';
+import { RuntimeConfig, FrameworkTestSessionResult, BrowserTestSessionResult } from './types';
+import { TestSessionResult, TestResultError } from '../TestSessionResult';
 
 const PARAM_SESSION_ID = 'wtr-session-id';
 
@@ -20,11 +20,20 @@ function postJSON(url: string, body: object) {
 
 const logs: string[] = [];
 
+function stringify(obj: object) {
+  try {
+    return JSON.stringify(obj);
+  } catch (error) {
+    // some objects can't be stringified, such as circular objects
+    return obj;
+  }
+}
+
 export function captureConsoleOutput() {
   for (const level of ['log', 'error', 'debug', 'warn'] as (keyof Console)[]) {
     const original: Function = console[level];
     console[level] = (...args: any[]) => {
-      logs.push(args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' '));
+      logs.push(args.map((a) => (typeof a === 'object' ? stringify(a) : a)).join(' '));
       original.apply(console, args);
     };
   }
@@ -54,10 +63,9 @@ export async function getConfig(): Promise<RuntimeConfig> {
 
 export function error(error: TestResultError) {
   return sessionFinished({
-    succeeded: false,
+    passed: false,
     error,
     failedImports: [],
-    suites: [],
     tests: [],
   });
 }
@@ -66,8 +74,8 @@ export async function sessionStarted() {
   await fetch(`/wtr/${sessionId}/session-started`, { method: 'POST' });
 }
 
-export async function sessionFinished(result: TestFrameworkResult): Promise<void> {
-  const sessionResult: BrowserSessionResult = { logs, ...result };
+export async function sessionFinished(result: FrameworkTestSessionResult): Promise<void> {
+  const sessionResult: BrowserTestSessionResult = { logs, ...result };
   await Promise.all(Array.from(pendingLogs)).catch(() => {});
   await postJSON(`/wtr/${sessionId}/session-finished`, sessionResult);
 }
