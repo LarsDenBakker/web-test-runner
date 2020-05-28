@@ -103,10 +103,10 @@ export function getFileErrorsReport(
   );
 
   if (sessionsThatFailedToImport.length > 0) {
-    const sesion =
+    const session =
       sessionsThatFailedToImport.find((s) => s.browserName === favoriteBrowser) ||
       sessionsThatFailedToImport[0];
-    const failedImport = sesion.result!.failedImports.find((i) => i.file === testFile)!;
+    const failedImport = session.result!.failedImports.find((i) => i.file === testFile)!;
     const failedBrowsers = sessionsThatFailedToImport.map((s) => s.browserName);
     const failedOn = createFailedOnBrowsers(allBrowserNames, failedBrowsers);
 
