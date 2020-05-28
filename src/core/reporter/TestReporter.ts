@@ -10,8 +10,10 @@ import { getFileErrorsReport } from './getFileErrorsReport';
 export class TestReporter {
   private reportedFilesByTestRun = new Map<number, Set<string>>();
   private logger = new TerminalLogger();
+  private serverAddress = '';
 
   reportStart(serverAddress: string) {
+    this.serverAddress = serverAddress;
     this.logger.start(serverAddress);
   }
 
@@ -59,6 +61,7 @@ export class TestReporter {
           testFile,
           allBrowserNames,
           favoriteBrowser,
+          this.serverAddress,
           failedSessions
         );
 

@@ -4,6 +4,8 @@ import { TestResultError } from '../TestSessionResult';
 import { TerminalEntry } from './TerminalLogger';
 import { TestSession } from '../TestSession';
 
+const REGEXP_ERROR_LOCATION_BRACKETS = /\((.*)\)/;
+
 function renderDiff(actual: string, expected: string) {
   function cleanUp(line: string) {
     if (line[0] === '+') {
@@ -32,12 +34,46 @@ function renderDiff(actual: string, expected: string) {
   return `${chalk.green('+ expected')} ${chalk.red('- actual')}\n\n${diffMsg}`;
 }
 
-export function renderError(err: TestResultError): string {
-  if (typeof err.expected === 'string' && typeof err.actual === 'string') {
-    return `${chalk.red(err.message)}\n${renderDiff(err.actual, err.expected)}`;
-  } else {
-    return chalk.red(err.stack || 'Unknown error');
+function findFirstWord(line: string) {
+  for (const maybeWord of line.split(' ')) {
+    if (maybeWord !== '') {
+      return maybeWord;
+    }
   }
+}
+
+function getErrorLocation(err: TestResultError, serverAddress: string) {
+  if (!err.stack) {
+    return undefined;
+  }
+
+  for (const line of err.stack.split('\n')) {
+    // firefox & safari
+    if (line.includes('@')) {
+      return line.split('@')[1];
+    }
+
+    // chromium
+    if (findFirstWord(line) === 'at') {
+      const match = line.match(REGEXP_ERROR_LOCATION_BRACKETS);
+      if (match && match.length >= 2) {
+        return match[1];
+      }
+    }
+  }
+}
+
+export function renderError(err: TestResultError, serverAddress: string): string {
+  const errorLocation = getErrorLocation(err, serverAddress);
+  let errorString = errorLocation != null ? `at: ${chalk.underline(errorLocation)}\n` : '';
+
+  if (typeof err.expected === 'string' && typeof err.actual === 'string') {
+    errorString += `error: ${chalk.red(err.message)}\n${renderDiff(err.actual, err.expected)}`;
+  } else {
+    errorString += errorLocation || !err.stack ? `error: ${chalk.red(err.message)}` : err.stack;
+  }
+
+  return errorString;
 }
 
 function createFailedOnBrowsers(allBrowserNames: string[], failedBrowsers: string[]) {
@@ -55,11 +91,12 @@ export function getFileErrorsReport(
   testFile: string,
   allBrowserNames: string[],
   favoriteBrowser: string,
+  serverAddress: string,
   failedSessions: TestSession[]
 ) {
   const entries: TerminalEntry[] = [];
 
-  entries.push(`${chalk.underline(testFile)}`);
+  entries.push(testFile);
 
   const sessionsThatFailedToImport = failedSessions.filter((s) =>
     s.result!.failedImports.some((imp) => imp.file === testFile)
@@ -74,7 +111,7 @@ export function getFileErrorsReport(
     const failedOn = createFailedOnBrowsers(allBrowserNames, failedBrowsers);
 
     entries.push({ text: `Failed to load test file${failedOn}`, indent: 2 });
-    entries.push({ text: renderError(failedImport.error), indent: 2 });
+    entries.push({ text: renderError(failedImport.error, serverAddress), indent: 2 });
   }
 
   const testErrorsPerBrowser = new Map<string, Map<string, TestResultError>>();
@@ -100,7 +137,7 @@ export function getFileErrorsReport(
       const failedOn = createFailedOnBrowsers(allBrowserNames, failedBrowsers);
 
       entries.push({ text: `${name}${failedOn}`, indent: 2 });
-      entries.push({ text: renderError(favoriteError), indent: 4 });
+      entries.push({ text: renderError(favoriteError, serverAddress), indent: 4 });
       entries.push('');
     }
   }

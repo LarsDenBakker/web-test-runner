@@ -4,5 +4,5 @@ const {
 
 module.exports = {
   // browsers: [playwrightLauncher({ browserTypes: ['chromium', 'firefox', 'webkit'] })],
-  browsers: [playwrightLauncher({ browserTypes: ['chromium', 'firefox', 'webkit'] })],
+  browsers: [playwrightLauncher({ browserTypes: ['webkit'] })],
 };

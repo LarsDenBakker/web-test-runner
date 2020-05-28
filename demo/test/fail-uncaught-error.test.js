@@ -1,6 +1,10 @@
 import { expect } from './chai.js';
 
-throw new Error('Error before running tests');
+try {
+  throw new Error('Error before running tests');
+} catch (error) {
+  debugger;
+}
 
 it('test 1', () => {
   expect(true).to.be.true;
