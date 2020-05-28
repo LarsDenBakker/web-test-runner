@@ -70,7 +70,7 @@ export function renderError(err: TestResultError, serverAddress: string): string
   if (typeof err.expected === 'string' && typeof err.actual === 'string') {
     errorString += `error: ${chalk.red(err.message)}\n${renderDiff(err.actual, err.expected)}`;
   } else {
-    errorString += errorLocation || !err.stack ? `error: ${chalk.red(err.message)}` : err.stack;
+    errorString += errorLocation || !err.stack ? `error: ${chalk.red(err.message)}` : `${chalk.red(err.stack)}`;
   }
 
   return errorString;
@@ -111,7 +111,7 @@ export function getFileErrorsReport(
     const failedOn = createFailedOnBrowsers(allBrowserNames, failedBrowsers);
 
     entries.push({ text: `Failed to load test file${failedOn}`, indent: 2 });
-    entries.push({ text: renderError(failedImport.error, serverAddress), indent: 2 });
+    entries.push({ text: renderError(failedImport.error, serverAddress), indent: 4 });
   }
   const testErrorsPerBrowser = new Map<string, Map<string, TestResultError>>();
 
