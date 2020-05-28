@@ -8,6 +8,7 @@
     "build:watch": "rm -rf dist && tsc --watch & tsc --build tsconfig-runtime.json --watch",
     "test": "npm run test:bare -- \"demo/test/*.test.js\"",
     "test:bare": "export LOCAL_TESTING=true && node dist/core/cli.js",
+    "test:customhtml": "export LOCAL_TESTING=true && node dist/core/cli.js demo/test/**/*.test.js --config demo/customhtml.config.js",
     "test:many": "npm run test:bare -- \"demo/test/many/**/*.test.js\"",
     "test:fail": "npm run test:bare -- \"demo/test/fail-*.test.js\"",
     "test:pass": "npm run test:bare -- \"demo/test/pass-*.test.js\"",
