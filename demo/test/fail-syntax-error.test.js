@@ -1,4 +1,3 @@
-import './non-existing.js';
 import './fail-syntax-error-dependency.js';
 
 describe('test 404 import', () => {
