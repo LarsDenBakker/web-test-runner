@@ -22,13 +22,31 @@ export function dependencyGraphMiddleware({
   onRequest404,
   onRerunSessions,
 }: DependencyGraphMiddlewareArgs): Middleware {
-  const depGraph = new DepGraph({ circular: true });
+  const fileGraph = new DepGraph({ circular: true });
+  const urlGraph = new DepGraph({ circular: true });
   let pendingChangedFiles = new Set<string>();
+
+  function getSessionIdsForPath(path: string) {
+    const ids = new Set<string>();
+    if (urlGraph.hasNode(path)) {
+      for (const dependant of urlGraph.dependantsOf(path)) {
+        if (dependant.startsWith('\0')) {
+          const url = new URL(dependant.substring(1));
+          const id = url.searchParams.get(PARAM_SESSION_ID);
+          if (!id) {
+            throw new Error('Missing session id parameter');
+          }
+          ids.add(id);
+        }
+      }
+    }
+    return ids;
+  }
 
   function getSessionIdsForFile(file: string) {
     const ids = new Set<string>();
-    if (depGraph.hasNode(file)) {
-      for (const dependant of depGraph.dependantsOf(file)) {
+    if (fileGraph.hasNode(file)) {
+      for (const dependant of fileGraph.dependantsOf(file)) {
         if (dependant.startsWith('\0')) {
           const url = new URL(dependant.substring(1));
           const id = url.searchParams.get(PARAM_SESSION_ID);
@@ -71,36 +89,44 @@ export function dependencyGraphMiddleware({
   return async (ctx, next) => {
     let dependantUrl;
     let dependencyPath;
+    let dependencyUrl;
 
     if (ctx.path.endsWith('/')) {
       // If the request is for a HTML file without a file extension, we should set itself as the dependant
       dependantUrl = new URL(ctx.href);
       dependencyPath = `${ctx.path}index.html`;
+      dependencyUrl = dependencyPath;
     } else if (!ctx.headers.referer) {
       // certain files like source maps are fetched without a referer, we skip those
       return next();
     } else {
       dependantUrl = new URL(ctx.headers.referer as string);
       dependencyPath = ctx.path;
+      dependencyUrl = ctx.url;
     }
 
-    const dependant = dependantUrl.searchParams.has(PARAM_SESSION_ID)
+    const dependantFilePath = dependantUrl.searchParams.has(PARAM_SESSION_ID)
       ? // the dependant is the test HTML file, we remember the full href and mark it with a null byte
         `\0${dependantUrl.href}`
       : // the dependant is a "regular" file, we resolve it to the file path
         path.join(rootDir, toFilePath(dependantUrl.pathname));
-    const dependency = path.join(rootDir, toFilePath(dependencyPath));
+    const dependencyFilePath = path.join(rootDir, toFilePath(dependencyPath));
+    const dependantPath = dependantUrl.searchParams.has(PARAM_SESSION_ID)
+      ? dependantFilePath
+      : dependantUrl.pathname;
 
-    depGraph.addNode(dependant);
-    depGraph.addNode(dependency);
-    depGraph.addDependency(dependant, dependency);
+    fileGraph.addNode(dependantFilePath);
+    fileGraph.addNode(dependencyFilePath);
+    fileGraph.addDependency(dependantFilePath, dependencyFilePath);
+
+    urlGraph.addNode(dependantPath);
+    urlGraph.addNode(dependencyUrl);
+    urlGraph.addDependency(dependantPath, dependencyUrl);
 
     await next();
 
     if (ctx.status === 404) {
-      const filePath = path.join(rootDir, toFilePath(ctx.path));
-
-      for (const sessionId of getSessionIdsForFile(filePath)) {
+      for (const sessionId of getSessionIdsForPath(ctx.url)) {
         onRequest404(sessionId, ctx.url.substring(1));
       }
     }

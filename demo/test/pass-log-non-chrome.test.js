@@ -5,7 +5,7 @@ it('test 1', () => {
     /^((?!chrome|android).)*safari/i.test(navigator.userAgent) ||
     navigator.userAgent.toLowerCase().includes('firefox')
   ) {
-    console.log('message logged on non-chromium browsers safari');
+    console.log('message logged on non-chromium browsers');
   }
   expect(true).to.be.true;
 });

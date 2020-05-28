@@ -114,7 +114,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
   <head></head>
   <body>
     <script type="module">
-      import "${testRunnerImport}";
+      import "${testRunnerImport}${context.URL.search}";
     </script>
   </body>
 </html>`,
