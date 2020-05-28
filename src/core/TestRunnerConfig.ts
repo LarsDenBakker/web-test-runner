@@ -8,7 +8,7 @@ export interface TestRunnerConfig {
   server: Server;
   address: string;
   port: number;
-  html?: string;
+  testRunnerHtml?: (config: TestRunnerConfig) => string;
   watch?: boolean;
   debug?: boolean;
   testIsolation?: boolean;

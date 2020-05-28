@@ -1,10 +1,10 @@
 module.exports = {
-  html: `
+  html: ({testRunnerImport}) => `
     <html>
       <head></head>
       <body>
         <script type="module">
-          import "../dist/implementations/frameworks/mocha.js";
+          ${testRunnerImport}
         </script>
       </body>
     </html>
