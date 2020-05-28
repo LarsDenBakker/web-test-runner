@@ -113,7 +113,6 @@ export function getFileErrorsReport(
     entries.push({ text: `Failed to load test file${failedOn}`, indent: 2 });
     entries.push({ text: renderError(failedImport.error, serverAddress), indent: 2 });
   }
-
   const testErrorsPerBrowser = new Map<string, Map<string, TestResultError>>();
 
   for (const session of failedSessions) {
@@ -138,7 +137,6 @@ export function getFileErrorsReport(
 
       entries.push({ text: `${name}${failedOn}`, indent: 2 });
       entries.push({ text: renderError(favoriteError, serverAddress), indent: 4 });
-      entries.push('');
     }
   }
 
