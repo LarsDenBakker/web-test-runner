@@ -74,7 +74,7 @@ export class TestReporter {
   }
 
   reportSessionErrors(failedSessions: Map<string, TestSession>) {
-    const sessionErrorsReport = getSessionErrorsReport(failedSessions);
+    const sessionErrorsReport = getSessionErrorsReport(failedSessions, this.serverAddress);
     this.logger.logStatic(sessionErrorsReport);
   }
 

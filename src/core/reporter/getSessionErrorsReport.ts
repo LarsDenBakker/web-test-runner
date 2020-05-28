@@ -3,7 +3,7 @@ import { renderError } from './getFileErrorsReport';
 import { TerminalEntry } from './TerminalLogger';
 import { TestSession } from '../TestSession';
 
-export function getSessionErrorsReport(failedSessionsMap: Map<string, TestSession>) {
+export function getSessionErrorsReport(failedSessionsMap: Map<string, TestSession>, serverAddress: string) {
   const entries: TerminalEntry[] = [];
   const failedSessions = Array.from(failedSessionsMap.values());
 
@@ -13,7 +13,7 @@ export function getSessionErrorsReport(failedSessionsMap: Map<string, TestSessio
     for (const session of failedSessions) {
       if (session.result!.error) {
         entries.push({ text: `${session.browserName}:`, indent: 2 });
-        entries.push({ text: renderError(session.result!.error), indent: 4 });
+        entries.push({ text: renderError(session.result!.error, serverAddress), indent: 4 });
       }
     }
 
