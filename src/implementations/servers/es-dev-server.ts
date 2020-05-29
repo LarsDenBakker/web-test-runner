@@ -110,7 +110,9 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                   if (context.path === '/') {
                     return {
                       type: 'html',
-                      body: config.testRunnerHtml ? config.testRunnerHtml(config) : `<html>
+                      body: config.testRunnerHtml
+                        ? config.testRunnerHtml(config)
+                        : `<html>
   <head></head>
   <body>
     <script type="module">
@@ -132,7 +134,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
     },
 
     async stop() {
-      await server.close();
+      await server?.close();
     },
   };
 }
