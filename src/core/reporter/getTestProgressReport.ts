@@ -12,7 +12,6 @@ export interface TestProgressArgs {
   initializingSessions: Set<string>;
   runningSessions: Set<string>;
   startTime: number;
-  finishedOnce: boolean;
 }
 
 const fullProgress = '█';

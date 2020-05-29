@@ -6,6 +6,7 @@ export interface RuntimeConfig {
   watch: boolean;
 }
 
-export interface FrameworkTestSessionResult extends Omit<BrowserTestSessionResult, 'logs'> {}
+export interface FrameworkTestSessionResult
+  extends Omit<BrowserTestSessionResult, 'logs' | 'testCoverage'> {}
 
 export interface BrowserTestSessionResult extends Omit<TestSessionResult, 'request404s'> {}

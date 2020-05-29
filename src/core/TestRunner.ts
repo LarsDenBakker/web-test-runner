@@ -6,6 +6,7 @@ import { TestSessionResult } from './TestSessionResult';
 import { TestSessionManager } from './TestSessionManager';
 import { TestReporter } from './reporter/TestReporter';
 import { TestRun } from './TestRun';
+import { getCoverageSummary } from './getCoverageSummary';
 
 export class TestRunner {
   private config: TestRunnerConfig;
@@ -16,7 +17,6 @@ export class TestRunner {
   private serverAddress: string;
   private manager = new TestSessionManager();
   private reporter = new TestReporter();
-  private finishedOnce = false;
   private startTime = -1;
   private updateTestProgressIntervalId?: NodeJS.Timer;
   private started = false;
@@ -206,20 +206,29 @@ export class TestRunner {
 
       const finishedAll = this.manager.runningSessions.size === 0;
       if (finishedAll) {
-        this.finishedOnce = true;
+        let passedCoverage = true;
+        if (this.config.coverage) {
+          const coverageThreshold =
+            typeof this.config.coverage === 'object' ? this.config.coverage.threshold : undefined;
+
+          const cov = getCoverageSummary(this.manager.sessions, coverageThreshold);
+          passedCoverage = cov.passed;
+
+          this.reporter.reportTestCoverage(cov.coverageData, passedCoverage, coverageThreshold);
+        }
+
+        if (!this.config.watch && !this.config.debug) {
+          setTimeout(async () => {
+            // TODO: Report these in watch mode too
+            this.reporter.reportSessionErrors(this.manager.failedSessions);
+            await this.stop();
+            const failed = !passedCoverage || this.manager.failedSessions.size > 0;
+            process.exit(failed ? 1 : 0);
+          });
+        }
       }
+
       this.updateTestProgress();
-
-      const shouldExit = finishedAll && !this.config.watch && !this.config.debug;
-
-      if (shouldExit) {
-        setTimeout(async () => {
-          // TODO: Report these in watch mode too
-          this.reporter.reportSessionErrors(this.manager.failedSessions);
-          await this.stop();
-          process.exit(this.manager.failedSessions.size > 0 ? 1 : 0);
-        });
-      }
     } catch (error) {
       console.error(error);
       this.kill();
@@ -236,7 +245,6 @@ export class TestRunner {
         initializingSessions: this.manager.initializingSessions,
         runningSessions: this.manager.runningSessions,
         startTime: this.startTime,
-        finishedOnce: this.finishedOnce,
       });
     } catch (error) {
       console.error(error);

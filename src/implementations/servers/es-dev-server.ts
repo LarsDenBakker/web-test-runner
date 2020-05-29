@@ -41,7 +41,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
         }
         request404sForSession.add(url);
       }
-console.log('testFiles',testFiles)
+
       const fileWatcher = chokidar.watch([]);
       const serverConfig = createConfig(
         deepmerge(

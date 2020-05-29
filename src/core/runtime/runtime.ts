@@ -75,7 +75,11 @@ export async function sessionStarted() {
 }
 
 export async function sessionFinished(result: FrameworkTestSessionResult): Promise<void> {
-  const sessionResult: BrowserTestSessionResult = { logs, ...result };
+  const sessionResult: BrowserTestSessionResult = {
+    logs,
+    testCoverage: (window as any).__coverage__,
+    ...result,
+  };
   await Promise.all(Array.from(pendingLogs)).catch(() => {});
   await postJSON(`/wtr/${sessionId}/session-finished`, sessionResult);
 }

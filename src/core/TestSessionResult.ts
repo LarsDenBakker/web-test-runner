@@ -1,3 +1,5 @@
+import { CoverageMapData } from "istanbul-lib-coverage";
+
 export interface FailedImport {
   file: string;
   error: TestResultError;
@@ -23,4 +25,5 @@ export interface TestSessionResult {
   logs: string[];
   failedImports: FailedImport[];
   request404s: Set<string>;
+  testCoverage?: CoverageMapData;
 }

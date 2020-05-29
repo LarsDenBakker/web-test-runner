@@ -1,10 +1,12 @@
 import { TestRun } from '../TestRun';
-import { TestRunnerConfig } from '../TestRunnerConfig';
+import { TestRunnerConfig, CoverageThresholdConfig } from '../TestRunnerConfig';
 import { TestProgressArgs, getTestProgressReport } from './getTestProgressReport';
 import { getSessionErrorsReport } from './getSessionErrorsReport';
 import { TestSession, SessionStatuses } from '../TestSession';
 import { TerminalLogger } from './TerminalLogger';
 import { getTestFileReport } from './getTestFileReport';
+import { getTestCoverageReport } from './getTestCoverageReport';
+import { CoverageSummaryData } from 'istanbul-lib-coverage';
 
 export class TestReporter {
   private reportedFilesByTestRun = new Map<number, Set<string>>();
@@ -31,6 +33,14 @@ export class TestReporter {
         this.reportTestFileResults(testRun, testFile, allBrowserNames, favoriteBrowser, sessions);
       }
     }
+  }
+
+  reportTestCoverage(
+    coverageData: CoverageSummaryData,
+    passedCoverage: boolean,
+    coverageThreshold?: CoverageThresholdConfig
+  ) {
+    this.logger.logStatic(getTestCoverageReport(coverageData, passedCoverage, coverageThreshold));
   }
 
   reportTestFileResults(
