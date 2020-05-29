@@ -5,7 +5,7 @@ import path from 'path';
 import { runTests } from './runTests';
 import { puppeteerLauncher } from '../implementations/browser-launchers/puppeteer-launcher';
 import { createEsDevServer } from '../implementations/servers/es-dev-server';
-import { TestRunnerConfig } from './TestRunnerConfig';
+import { TestRunnerConfig, CoverageConfig } from './TestRunnerConfig';
 
 const commandLineOptions = [
   {
@@ -23,6 +23,10 @@ const commandLineOptions = [
     type: Boolean,
   },
   {
+    name: 'coverage',
+    type: Boolean,
+  },
+  {
     name: 'config',
     type: String,
   },
@@ -31,6 +35,10 @@ const commandLineOptions = [
     type: Boolean,
   },
 ];
+
+const defaultCoverageConfig: CoverageConfig = {
+  exclude: ['**/node_modules/**/*'],
+};
 
 (async () => {
   const args = commandLineArgs(commandLineOptions);
@@ -66,6 +74,9 @@ const commandLineOptions = [
   }
   if ('debug' in args) {
     config.debug = !!args.debug;
+  }
+  if (args.coverage) {
+    config.coverage = defaultCoverageConfig;
   }
 
   if (!config.files) {

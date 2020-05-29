@@ -66,15 +66,13 @@ export class TestRunner {
 
       this.reporter.reportStart(this.serverAddress);
 
-      try {
-        await this.config.server.start({
-          config: this.config,
-          sessions: this.manager.sessions,
-          onSessionStarted: this.onSessionStarted,
-          onSessionFinished: this.onSessionFinished,
-          onRerunSessions: this.onRerunSessions,
-        });
-      } catch (e) {}
+      await this.config.server.start({
+        config: this.config,
+        sessions: this.manager.sessions,
+        onSessionStarted: this.onSessionStarted,
+        onSessionFinished: this.onSessionFinished,
+        onRerunSessions: this.onRerunSessions,
+      });
 
       this.updateTestProgressIntervalId = setInterval(() => {
         this.updateTestProgress();

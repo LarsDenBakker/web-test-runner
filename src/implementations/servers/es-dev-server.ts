@@ -42,7 +42,6 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
       }
 
       const fileWatcher = chokidar.watch([]);
-
       const serverConfig = createConfig(
         deepmerge(
           {
@@ -51,6 +50,21 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
             debug: false,
             logStartup: false,
             logCompileErrors: false,
+            babelConfig: config.coverage
+              ? {
+                  plugins: [
+                    [
+                      require.resolve('babel-plugin-istanbul'),
+                      {
+                        exclude:
+                          typeof config.coverage === 'boolean'
+                            ? undefined
+                            : config.coverage.exclude,
+                      },
+                    ],
+                  ],
+                }
+              : undefined,
             middlewares: [
               async function middleware(ctx: Context, next: Next) {
                 if (ctx.path.startsWith('/wtr/')) {
