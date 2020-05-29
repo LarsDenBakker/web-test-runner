@@ -14,6 +14,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
   return {
     async start({
       config,
+      testFiles,
       sessions,
       onSessionStarted,
       onSessionFinished,
@@ -40,7 +41,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
         }
         request404sForSession.add(url);
       }
-
+console.log('testFiles',testFiles)
       const fileWatcher = chokidar.watch([]);
       const serverConfig = createConfig(
         deepmerge(
@@ -58,8 +59,8 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                       {
                         exclude:
                           typeof config.coverage === 'boolean'
-                            ? undefined
-                            : config.coverage.exclude,
+                            ? [testFiles]
+                            : [...testFiles, ...(config.coverage.exclude ?? [])],
                       },
                     ],
                   ],

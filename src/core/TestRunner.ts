@@ -69,6 +69,7 @@ export class TestRunner {
       await this.config.server.start({
         config: this.config,
         sessions: this.manager.sessions,
+        testFiles: this.testFiles,
         onSessionStarted: this.onSessionStarted,
         onSessionFinished: this.onSessionFinished,
         onRerunSessions: this.onRerunSessions,

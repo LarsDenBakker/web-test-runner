@@ -5,6 +5,7 @@ import { TestSessionResult } from './TestSessionResult';
 export interface ServerStartArgs {
   config: TestRunnerConfig;
   sessions: Map<string, TestSession>;
+  testFiles: string[];
   onSessionStarted: (id: string) => void;
   onSessionFinished: (id: string, result: TestSessionResult) => void;
   onRerunSessions: (sessionIds: string[]) => void;
