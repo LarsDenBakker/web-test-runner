@@ -1,9 +1,9 @@
 //@ts-ignore
 import browserstack from 'browserstack-local';
 import webdriver, { ThenableWebDriver } from 'selenium-webdriver';
+import { promisify } from 'util';
 import { BrowserLauncher } from '../../core/BrowserLauncher';
 import { PARAM_SESSION_ID } from '../../core/constants';
-import { promisify } from 'util';
 import { TestRunnerConfig } from '../../core/TestRunnerConfig';
 
 export interface UserAgent {
@@ -100,7 +100,7 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
       await promisify(bsLocal.stop).bind(bsLocal);
     },
 
-    startSession(session) {
+    async startSession(session) {
       const driver = drivers.get(session.browserName);
       if (!driver) {
         throw new Error(`Unknown browser ${session.browserName}`);
