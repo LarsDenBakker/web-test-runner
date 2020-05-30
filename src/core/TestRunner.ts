@@ -116,18 +116,17 @@ export class TestRunner {
 
     try {
       this.testRun += 1;
-      if (this.config.watch) {
-        await this.scheduler.schedule(this.testRun, sessions);
-        this.reporter.reportTestRunStart(
-          this.testRun,
-          this.browserNames,
-          this.favoriteBrowser!,
-          this.manager.sessionsByTestFile,
-          this.manager.scheduledSessions,
-          this.manager.runningSessions,
-          this.serverAddress
-        );
-      }
+
+      await this.scheduler.schedule(this.testRun, sessions);
+      this.reporter.reportTestRunStart(
+        this.testRun,
+        this.browserNames,
+        this.favoriteBrowser!,
+        this.manager.sessionsByTestFile,
+        this.manager.scheduledSessions,
+        this.manager.runningSessions,
+        this.serverAddress
+      );
     } catch (error) {
       this.kill(error);
     }
