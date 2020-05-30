@@ -30,6 +30,9 @@ export class TestRunner {
     this.browsers = Array.isArray(config.browsers) ? config.browsers : [config.browsers];
     this.serverAddress = `${config.address}:${config.port}/`;
     this.scheduler = new TestScheduler(config, this.browsers, this.manager);
+    this.scheduler.on('session-timed-out', ({ id, result }) => {
+      this.onSessionFinished(id, result);
+    });
   }
 
   async start() {
@@ -110,7 +113,7 @@ export class TestRunner {
         );
       }
 
-      await this.scheduler.schedule(sessions);
+      await this.scheduler.schedule(this.testRun, sessions);
     } catch (error) {
       this.kill(error);
     }
@@ -161,7 +164,7 @@ export class TestRunner {
         throw new Error(`Unknown session ${sessionId}`);
       }
 
-      this.manager.updateSession({ ...session, status: SessionStatuses.RUNNING });
+      this.manager.updateSession({ ...session, status: SessionStatuses.STARTED });
       this.updateTestProgress();
     } catch (error) {
       this.kill(error);
@@ -197,7 +200,7 @@ export class TestRunner {
       }
       this.manager.updateSession({ ...session, status: SessionStatuses.FINISHED, result });
 
-      this.scheduler.runScheduled().catch((error) => {
+      this.scheduler.runScheduled(this.testRun).catch((error) => {
         this.kill(error);
       });
 

@@ -26,4 +26,6 @@ export interface TestRunnerConfig {
   debug?: boolean;
   coverage?: boolean | CoverageConfig;
   concurrency?: number;
+  sessionStartTimeout?: number;
+  sessionFinishTimeout?: number;
 }

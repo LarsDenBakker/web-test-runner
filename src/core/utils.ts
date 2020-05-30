@@ -46,6 +46,7 @@ export function createTestSessions(browserNames: string[], testFiles: string[]) 
     const group = testFile;
     const sessionsForFile = browserNames.map((browserName) => ({
       id: uuid(),
+      testRun: -1,
       group,
       browserName,
       status: SessionStatuses.SCHEDULED,
