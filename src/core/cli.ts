@@ -59,7 +59,7 @@ const defaultCoverageConfig: CoverageConfig = {
     testFrameworkImport: 'web-test-runner/dist/implementations/frameworks/mocha.js',
     address: 'http://localhost',
     port: 9542,
-    concurrency: 30,
+    concurrency: 10,
     sessionStartTimeout: 10000,
     sessionFinishTimeout: 10000,
     browsers: puppeteerLauncher(),

@@ -10,7 +10,8 @@ export interface PuppeteerLauncherConfig {
 export function puppeteerLauncher({
   args,
 }: Partial<PuppeteerLauncherConfig> = {}): BrowserLauncher {
-  const pages = new Map<String, Page>();
+  const activePages = new Map<String, Page>();
+  const inactivePages: Page[] = [];
   let config: TestRunnerConfig;
   let serverAddress: string;
   let browser: Browser;
@@ -35,22 +36,35 @@ export function puppeteerLauncher({
     },
 
     async openDebugPage() {
+      if (debugBrowser?.isConnected()) {
+        await debugBrowser.close();
+      }
       debugBrowser = await launch({ args, devtools: true });
       const page = await debugBrowser.newPage();
       await page.goto(`${serverAddress}debug/`);
     },
 
     async startSession(session) {
-      const page = await browser.newPage();
-      pages.set(session.id, page);
+      if (!browser.isConnected()) {
+        throw new Error('Browser is closed');
+      }
+
+      let page: Page;
+      if (true && inactivePages.length === 0) {
+        page = await browser.newPage();
+      } else {
+        page = inactivePages.pop()!;
+      }
+
+      activePages.set(session.id, page);
       await page.goto(`${serverAddress}?${PARAM_SESSION_ID}=${session.id}`);
     },
 
     stopSession(session) {
-      const page = pages.get(session.id);
+      const page = activePages.get(session.id);
       if (page) {
-        pages.delete(session.id);
-        page.close();
+        activePages.delete(session.id);
+        inactivePages.push(page);
       }
     },
   };

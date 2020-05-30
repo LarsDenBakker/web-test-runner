@@ -14,7 +14,10 @@ export interface PlaywrightLauncherConfig {
 export function playwrightLauncher({
   browserTypes = ['chromium'],
 }: Partial<PlaywrightLauncherConfig> = {}): BrowserLauncher {
-  const pages = new Map<String, Page>();
+  const browsers = new Map<string, Browser>();
+  const activePages = new Map<String, Page>();
+  const inactivePages: Page[] = [];
+  let debugBrowsers: Browser[] = [];
 
   if (browserTypes.some((t) => !validBrowserTypes.includes(t))) {
     throw new Error(
@@ -24,7 +27,6 @@ export function playwrightLauncher({
 
   let config: TestRunnerConfig;
   let serverAddress: string;
-  const browsers = new Map<string, Browser>();
 
   return {
     async start(_config) {
@@ -46,10 +48,23 @@ export function playwrightLauncher({
       for (const browser of browsers.values()) {
         await browser.close();
       }
+      for (const browser of debugBrowsers) {
+        await browser.close();
+      }
     },
 
     async openDebugPage() {
-      for (const browser of browsers.values()) {
+      for (const b of debugBrowsers) {
+        if (b.isConnected()) {
+          await b.close();
+        }
+      }
+
+      debugBrowsers = [];
+
+      for (const type of browserTypes) {
+        const browser = await playwright[type].launch({ headless: false });
+        debugBrowsers.push(browser);
         const page = await browser.newPage();
         await page.goto(`${serverAddress}debug/`);
       }
@@ -60,17 +75,26 @@ export function playwrightLauncher({
       if (!browser) {
         throw new Error(`Unknown browser name: ${browser}`);
       }
+      if (!browser.isConnected()) {
+        throw new Error('Browser is closed');
+      }
 
-      const page = await browser.newPage();
-      pages.set(session.id, page);
+      let page: Page;
+      if (true && inactivePages.length === 0) {
+        page = await browser.newPage();
+      } else {
+        page = inactivePages.pop()!;
+      }
+
+      activePages.set(session.id, page);
       await page.goto(`${serverAddress}?${PARAM_SESSION_ID}=${session.id}`);
     },
 
     stopSession(session) {
-      const page = pages.get(session.id);
+      const page = activePages.get(session.id);
       if (page) {
-        pages.delete(session.id);
-        page.close();
+        activePages.delete(session.id);
+        inactivePages.push(page);
       }
     },
   };
