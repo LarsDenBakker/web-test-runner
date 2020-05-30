@@ -10,7 +10,7 @@ export class TestScheduler {
     private manager: TestSessionManager
   ) {}
 
-  schedule(sessions: TestSession[]) {
+  async schedule(sessions: TestSession[]) {
     for (const session of sessions) {
       this.manager.updateSession({
         ...session,
@@ -18,10 +18,11 @@ export class TestScheduler {
       });
     }
 
-    this.runScheduled();
+    return this.runScheduled();
   }
 
-  runScheduled() {
+  async runScheduled() {
+    const scheduleTasks = [];
     const it = this.manager.scheduledSessions[Symbol.iterator]();
 
     while (this.manager.runningSessions.size < this.config.concurrency!) {
@@ -34,14 +35,17 @@ export class TestScheduler {
         throw new Error(`Could not find session ${value}`);
       }
 
-      // TODO: Select associated browser instead of iterating all browsers
-      for (const browser of this.browsers) {
-        browser.startSession(session);
-      }
       this.manager.updateSession({
         ...session,
         status: SessionStatuses.RUNNING,
       });
+
+      // TODO: Select associated browser instead of iterating all browsers
+      for (const browser of this.browsers) {
+        scheduleTasks.push(browser.startSession(session));
+      }
     }
+
+    return Promise.all(scheduleTasks);
   }
 }

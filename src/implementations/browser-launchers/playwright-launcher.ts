@@ -53,16 +53,15 @@ export function playwrightLauncher({
       }
     },
 
-    startSession(session) {
+    async startSession(session) {
       const browser = browsers.get(session.browserName);
       if (!browser) {
         throw new Error(`Unknown browser name: ${browser}`);
       }
 
-      browser.newPage().then((page) => {
-        pages.set(session.id, page);
-        page.goto(`${serverAddress}?${PARAM_SESSION_ID}=${session.id}`);
-      });
+      const page = await browser.newPage();
+      pages.set(session.id, page);
+      await page.goto(`${serverAddress}?${PARAM_SESSION_ID}=${session.id}`);
     },
 
     stopSession(session) {

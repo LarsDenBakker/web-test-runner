@@ -21,11 +21,11 @@ export function puppeteerLauncher(): BrowserLauncher {
       await browser.close();
     },
 
-    startSession(session) {
-      browser.newPage().then((page) => {
-        pages.set(session.id, page);
-        page.goto(`${serverAddress}?${PARAM_SESSION_ID}=${session.id}`);
-      });
+    async startSession(session) {
+      const page = await browser.newPage();
+      pages.set(session.id, page);
+      await page.goto(`${serverAddress}?${PARAM_SESSION_ID}=${session.id}`);
+      throw new Error('x');
     },
 
     stopSession(session) {

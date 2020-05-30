@@ -84,12 +84,11 @@ export class TestRunner {
       const sessionsArray = Array.from(this.manager.sessions.values());
       this.runTests(sessionsArray);
     } catch (error) {
-      console.error(error);
-      this.kill();
+      this.kill(error);
     }
   }
 
-  private runTests(sessions: TestSession[]) {
+  private async runTests(sessions: TestSession[]) {
     if (this.stopped) {
       return;
     }
@@ -111,10 +110,9 @@ export class TestRunner {
         );
       }
 
-      this.scheduler.schedule(sessions);
+      await this.scheduler.schedule(sessions);
     } catch (error) {
-      console.error(error);
-      this.kill();
+      this.kill(error);
     }
   }
 
@@ -145,7 +143,13 @@ export class TestRunner {
     await Promise.all(tasks);
   }
 
-  async kill() {
+  async kill(error?: any) {
+    console.error('Error while running tests:');
+    console.error('');
+    if (error instanceof Error) {
+      console.error(error);
+    }
+
     await this.stop();
     process.exit(1);
   }
@@ -160,8 +164,7 @@ export class TestRunner {
       this.manager.updateSession({ ...session, status: SessionStatuses.RUNNING });
       this.updateTestProgress();
     } catch (error) {
-      console.error(error);
-      this.kill();
+      this.kill(error);
     }
   };
 
@@ -177,8 +180,7 @@ export class TestRunner {
 
       this.runTests(sessions);
     } catch (error) {
-      console.error(error);
-      this.kill();
+      this.kill(error);
     }
   };
 
@@ -194,7 +196,10 @@ export class TestRunner {
         browser.stopSession(session);
       }
       this.manager.updateSession({ ...session, status: SessionStatuses.FINISHED, result });
-      this.scheduler.runScheduled();
+
+      this.scheduler.runScheduled().catch((error) => {
+        this.kill(error);
+      });
 
       const sessionsForTestFile = this.manager.sessionsByTestFile.get(session.testFile)!;
       this.reporter.reportTestFileResults(
@@ -231,8 +236,7 @@ export class TestRunner {
 
       this.updateTestProgress();
     } catch (error) {
-      console.error(error);
-      this.kill();
+      this.kill(error);
     }
   };
 
@@ -248,8 +252,7 @@ export class TestRunner {
         startTime: this.startTime,
       });
     } catch (error) {
-      console.error(error);
-      this.kill();
+      this.kill(error);
     }
   }
 }
