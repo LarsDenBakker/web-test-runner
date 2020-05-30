@@ -16,14 +16,13 @@ export interface CoverageConfig {
 
 export interface TestRunnerConfig {
   files: string | string[];
-  testRunnerImport: string;
+  testFrameworkImport: string;
   browsers: BrowserLauncher | BrowserLauncher[];
   server: Server;
   address: string;
   port: number;
   testRunnerHtml?: (config: TestRunnerConfig) => string;
   watch?: boolean;
-  debug?: boolean;
   coverage?: boolean | CoverageConfig;
   concurrency?: number;
   sessionStartTimeout?: number;

@@ -1,5 +1,5 @@
 import { TestSession } from '../TestSession';
-import { TerminalEntry } from './TerminalLogger';
+import { TerminalEntry } from './Terminal';
 import { getFileErrorsReport } from './getFileErrorsReport';
 import { getBrowserLogsReport } from './getBrowserLogsReport';
 import { getRequest404sReport } from './getRequest404sReport';

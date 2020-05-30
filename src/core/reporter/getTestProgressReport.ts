@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { TerminalEntry } from './TerminalLogger';
+import { TerminalEntry } from './Terminal';
 import { TestSession, SessionStatuses } from '../TestSession';
 import { TestRunnerConfig } from '../TestRunnerConfig';
 
@@ -90,8 +90,6 @@ export function getTestProgressReport(config: TestRunnerConfig, args: TestProgre
   if (testRun !== -1 && scheduledSessions.size === 0 && runningSessions.size === 0) {
     if (config.watch) {
       entries.push(chalk.bold(`Finished running tests, watching for file changes...`));
-    } else if (config.debug) {
-      entries.push(chalk.bold(`Finished running tests, waiting for browser reload...`));
     } else {
       entries.push(chalk.bold('Finished running tests!'));
     }
@@ -161,7 +159,7 @@ export function getTestProgressReport(config: TestRunnerConfig, args: TestProgre
   }
 
   entries.push('');
-  if (!config.watch && !config.debug) {
+  if (!config.watch) {
     entries.push(`Duration: ${Math.floor((Date.now() - startTime) / 1000)}s`);
     entries.push('');
   }

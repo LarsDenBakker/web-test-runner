@@ -13,7 +13,6 @@ logUncaughtErrors();
 (async () => {
   sessionStarted();
   const { testFile, debug } = await getConfig();
-
   const div = document.createElement('div');
   div.id = 'mocha';
   document.body.appendChild(div);

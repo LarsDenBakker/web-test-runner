@@ -88,6 +88,10 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
       return Array.from(drivers.keys());
     },
 
+    openDebugPage() {
+      throw new Error('Not supported');
+    },
+
     async stop() {
       process.kill((bsLocal as any).pid);
       await Promise.all(

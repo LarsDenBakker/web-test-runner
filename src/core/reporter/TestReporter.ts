@@ -2,20 +2,15 @@ import { TestRunnerConfig, CoverageThresholdConfig } from '../TestRunnerConfig';
 import { TestProgressArgs, getTestProgressReport } from './getTestProgressReport';
 import { getSessionErrorsReport } from './getSessionErrorsReport';
 import { TestSession, SessionStatuses } from '../TestSession';
-import { TerminalLogger } from './TerminalLogger';
+import { Terminal } from './Terminal';
 import { getTestFileReport } from './getTestFileReport';
 import { getTestCoverageReport } from './getTestCoverageReport';
 import { CoverageSummaryData } from 'istanbul-lib-coverage';
 
 export class TestReporter {
   private reportedFilesByTestRun = new Map<number, Set<string>>();
-  private logger = new TerminalLogger();
-  private serverAddress = '';
 
-  reportStart(serverAddress: string) {
-    this.serverAddress = serverAddress;
-    this.logger.start(serverAddress);
-  }
+  constructor(private terminal: Terminal) {}
 
   reportTestRunStart(
     testRun: number,
@@ -23,15 +18,23 @@ export class TestReporter {
     favoriteBrowser: string,
     sessionsByTestFile: Map<string, TestSession[]>,
     scheduledSessions: Set<string>,
-    runningSessions: Set<string>
+    runningSessions: Set<string>,
+    serverAddress: string
   ) {
     // Restart terminal
-    this.logger.restart();
+    this.terminal.restart();
 
     // Log results of test files that are not being re-run
     for (const [testFile, sessions] of sessionsByTestFile) {
       if (!sessions.some((s) => scheduledSessions.has(s.id) || runningSessions.has(s.id))) {
-        this.reportTestFileResults(testRun, testFile, allBrowserNames, favoriteBrowser, sessions);
+        this.reportTestFileResults(
+          testRun,
+          testFile,
+          allBrowserNames,
+          favoriteBrowser,
+          sessions,
+          serverAddress
+        );
       }
     }
   }
@@ -41,7 +44,7 @@ export class TestReporter {
     passedCoverage: boolean,
     coverageThreshold?: CoverageThresholdConfig
   ) {
-    this.logger.logStatic(getTestCoverageReport(coverageData, passedCoverage, coverageThreshold));
+    this.terminal.logStatic(getTestCoverageReport(coverageData, passedCoverage, coverageThreshold));
   }
 
   reportTestFileResults(
@@ -49,7 +52,8 @@ export class TestReporter {
     testFile: string,
     allBrowserNames: string[],
     favoriteBrowser: string,
-    sessionsForTestFile: TestSession[]
+    sessionsForTestFile: TestSession[],
+    serverAddress: string
   ) {
     const allFinished = sessionsForTestFile.every((s) => s.status === SessionStatuses.FINISHED);
     if (!allFinished) {
@@ -64,29 +68,30 @@ export class TestReporter {
 
     if (!reportedFiles?.has(testFile)) {
       reportedFiles.add(testFile);
-      this.logger.logStatic(
+      this.terminal.logStatic(
         getTestFileReport(
           testFile,
           allBrowserNames,
           favoriteBrowser,
-          this.serverAddress,
+          serverAddress,
           sessionsForTestFile
         )
       );
     }
   }
 
-  reportSessionErrors(failedSessions: Map<string, TestSession>) {
-    const sessionErrorsReport = getSessionErrorsReport(failedSessions, this.serverAddress);
-    this.logger.logStatic(sessionErrorsReport);
+  reportSessionErrors(failedSessions: Map<string, TestSession>, serverAddress: string) {
+    const sessionErrorsReport = getSessionErrorsReport(failedSessions, serverAddress);
+    this.terminal.logStatic(sessionErrorsReport);
   }
 
   reportTestProgress(config: TestRunnerConfig, args: TestProgressArgs) {
-    const progressReport = getTestProgressReport(config, args);
-    this.logger.logDynamic(progressReport);
+    const dynamicEntries = getTestProgressReport(config, args);
+    dynamicEntries.push(`\nPress D to debug in the browser.`)
+    this.terminal.logDynamic(dynamicEntries);
   }
 
   reportEnd() {
-    this.logger.stop();
+    this.terminal.stop();
   }
 }

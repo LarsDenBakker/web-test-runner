@@ -7,6 +7,8 @@ import chokidar from 'chokidar';
 import { Server } from '../../core/Server';
 import { RuntimeConfig, BrowserTestSessionResult } from '../../core/runtime/types';
 import { dependencyGraphMiddleware } from './dependencyGraphMiddleware';
+import { createTestPage } from './createTestPage';
+import { createDebugPage } from './createDebugPage';
 
 export function createEsDevServer(devServerConfig: object = {}): Server {
   let server: net.Server;
@@ -21,9 +23,9 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
       onRerunSessions: originalOnRerunSessions,
     }) {
       const request404sPerSession = new Map<string, Set<string>>();
-      const testRunnerImport = process.env.LOCAL_TESTING
-        ? config.testRunnerImport.replace('web-test-runner', '.')
-        : config.testRunnerImport;
+      const testFrameworkImport = process.env.LOCAL_TESTING
+        ? config.testFrameworkImport.replace('web-test-runner', '.')
+        : config.testFrameworkImport;
 
       function onRerunSessions(sessionIds: string[]) {
         for (const id of sessionIds) {
@@ -84,7 +86,6 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                   if (command === 'config') {
                     ctx.body = JSON.stringify({
                       ...session,
-                      debug: !!config.debug,
                       watch: !!config.watch,
                     } as RuntimeConfig);
                     return;
@@ -127,14 +128,14 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                       type: 'html',
                       body: config.testRunnerHtml
                         ? config.testRunnerHtml(config)
-                        : `<!DOCTYPE html><html>
-  <head></head>
-  <body>
-    <script type="module">
-      import "${testRunnerImport}${context.URL.search}";
-    </script>
-  </body>
-</html>`,
+                        : createTestPage(context, testFrameworkImport),
+                    };
+                  }
+
+                  if (context.path === '/debug/') {
+                    return {
+                      type: 'html',
+                      body: createDebugPage(Array.from(sessions.values())),
                     };
                   }
                 },

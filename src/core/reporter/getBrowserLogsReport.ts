@@ -1,4 +1,4 @@
-import { TerminalEntry } from './TerminalLogger';
+import { TerminalEntry } from './Terminal';
 import { TestSession } from '../TestSession';
 
 export function getBrowserLogsReport(testFile: string, sessions: TestSession[]) {

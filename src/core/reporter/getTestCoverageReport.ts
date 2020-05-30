@@ -1,6 +1,6 @@
 import { CoverageSummaryData } from 'istanbul-lib-coverage';
 import { CoverageThresholdConfig } from '../TestRunnerConfig';
-import { TerminalEntry } from './TerminalLogger';
+import { TerminalEntry } from './Terminal';
 import chalk from 'chalk';
 import { coverageTypes } from '../getCoverageSummary';
 

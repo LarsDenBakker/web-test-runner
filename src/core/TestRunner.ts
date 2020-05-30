@@ -7,6 +7,7 @@ import { TestSessionManager } from './TestSessionManager';
 import { TestReporter } from './reporter/TestReporter';
 import { getCoverageSummary } from './getCoverageSummary';
 import { TestScheduler } from './TestSessionScheduler';
+import { Terminal } from './reporter/Terminal';
 
 export class TestRunner {
   private config: TestRunnerConfig;
@@ -16,7 +17,8 @@ export class TestRunner {
   private favoriteBrowser?: string;
   private serverAddress: string;
   private manager = new TestSessionManager();
-  private reporter = new TestReporter();
+  private terminal = new Terminal();
+  private reporter = new TestReporter(this.terminal);
   private scheduler: TestScheduler;
   private startTime = -1;
   private updateTestProgressIntervalId?: NodeJS.Timer;
@@ -32,6 +34,16 @@ export class TestRunner {
     this.scheduler = new TestScheduler(config, this.browsers, this.manager);
     this.scheduler.on('session-timed-out', ({ id, result }) => {
       this.onSessionFinished(id, result);
+    });
+
+    this.terminal.on('kill', () => {
+      this.kill();
+    });
+
+    this.terminal.on('debug', () => {
+      for (const browser of this.browsers) {
+        browser.openDebugPage();
+      }
     });
   }
 
@@ -68,7 +80,7 @@ export class TestRunner {
         this.manager.updateSession(session);
       }
 
-      this.reporter.reportStart(this.serverAddress);
+      this.terminal.start(this.serverAddress, !!this.config.watch);
 
       await this.config.server.start({
         config: this.config,
@@ -85,6 +97,7 @@ export class TestRunner {
       this.updateTestProgress();
 
       const sessionsArray = Array.from(this.manager.sessions.values());
+
       this.runTests(sessionsArray);
     } catch (error) {
       this.kill(error);
@@ -103,7 +116,7 @@ export class TestRunner {
 
     try {
       this.testRun += 1;
-      if (this.config.watch || this.config.debug) {
+      if (this.config.watch) {
         await this.scheduler.schedule(this.testRun, sessions);
         this.reporter.reportTestRunStart(
           this.testRun,
@@ -111,7 +124,8 @@ export class TestRunner {
           this.favoriteBrowser!,
           this.manager.sessionsByTestFile,
           this.manager.scheduledSessions,
-          this.manager.runningSessions
+          this.manager.runningSessions,
+          this.serverAddress
         );
       }
     } catch (error) {
@@ -147,10 +161,10 @@ export class TestRunner {
   }
 
   async kill(error?: any) {
-    console.error('Error while running tests:');
-    console.error('');
     if (error instanceof Error) {
+      console.error('Error while running tests:');
       console.error(error);
+      console.error('');
     }
 
     await this.stop();
@@ -210,7 +224,8 @@ export class TestRunner {
         session.testFile,
         this.browserNames,
         this.favoriteBrowser!,
-        sessionsForTestFile
+        sessionsForTestFile,
+        this.serverAddress
       );
 
       const finishedAll = this.manager.finishedSessions.size === this.manager.sessions.size;
@@ -226,10 +241,10 @@ export class TestRunner {
           this.reporter.reportTestCoverage(cov.coverageData, passedCoverage, coverageThreshold);
         }
 
-        if (!this.config.watch && !this.config.debug) {
+        if (!this.config.watch) {
           setTimeout(async () => {
             // TODO: Report these in watch mode too
-            this.reporter.reportSessionErrors(this.manager.failedSessions);
+            this.reporter.reportSessionErrors(this.manager.failedSessions, this.serverAddress);
             await this.stop();
             const failed = !passedCoverage || this.manager.failedSessions.size > 0;
             process.exit(failed ? 1 : 0);

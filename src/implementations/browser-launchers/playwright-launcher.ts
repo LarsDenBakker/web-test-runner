@@ -35,12 +35,7 @@ export function playwrightLauncher({
       for (const type of browserTypes) {
         const name = `${type[0].toUpperCase()}${type.substring(1)}`;
         browserNames.push(name);
-        const options: LaunchOptions =
-          type === 'chromium'
-            ? { devtools: config.debug }
-            : // firefox and safari don't support devtools option
-              { headless: !config.debug };
-        const browser = await playwright[type].launch(options);
+        const browser = await playwright[type].launch();
         browsers.set(name, browser);
       }
 
@@ -50,6 +45,13 @@ export function playwrightLauncher({
     async stop() {
       for (const browser of browsers.values()) {
         await browser.close();
+      }
+    },
+
+    async openDebugPage() {
+      for (const browser of browsers.values()) {
+        const page = await browser.newPage();
+        await page.goto(`${serverAddress}debug/`);
       }
     },
 

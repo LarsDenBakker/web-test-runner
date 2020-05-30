@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { renderError } from './getFileErrorsReport';
-import { TerminalEntry } from './TerminalLogger';
+import { TerminalEntry } from './Terminal';
 import { TestSession } from '../TestSession';
 
 export function getSessionErrorsReport(failedSessionsMap: Map<string, TestSession>, serverAddress: string) {

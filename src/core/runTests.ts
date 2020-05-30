@@ -19,11 +19,6 @@ export async function runTests(config: TestRunnerConfig) {
     process.exit(1);
   }
 
-  if (config.debug && testFiles.length !== 1) {
-    console.error('Cannot debug when running more than one test file.');
-    process.exit(1);
-  }
-
   const testRunner = new TestRunner(config, testFiles);
 
   function stop() {

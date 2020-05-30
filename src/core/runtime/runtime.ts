@@ -2,10 +2,12 @@ import { RuntimeConfig, FrameworkTestSessionResult, BrowserTestSessionResult } f
 import { TestSessionResult, TestResultError } from '../TestSessionResult';
 
 const PARAM_SESSION_ID = 'wtr-session-id';
+const PARAM_DEBUG = 'wtr-debug';
 
 const pendingLogs: Set<Promise<any>> = new Set();
 
 const sessionId = new URL(window.location.href).searchParams.get(PARAM_SESSION_ID);
+const debug = new URL(window.location.href).searchParams.get(PARAM_DEBUG) === 'true';
 if (typeof sessionId !== 'string') {
   throw new Error(`Could not find any session id query parameter.`);
 }
@@ -51,10 +53,13 @@ export function logUncaughtErrors() {
   });
 }
 
-export async function getConfig(): Promise<RuntimeConfig> {
+export async function getConfig(): Promise<RuntimeConfig & { debug: boolean }> {
   try {
     const response = await fetch(`/wtr/${sessionId}/config`);
-    return response.json();
+    return {
+      ...(await response.json()),
+      debug,
+    };
   } catch (error) {
     await error({ message: 'Failed to fetch session config', stack: error.stack });
     throw error;

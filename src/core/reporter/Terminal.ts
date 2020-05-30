@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events';
 import logUpdate from 'log-update';
 
 const CLEAR_COMMAND = process.platform === 'win32' ? '\x1B[2J\x1B[0f' : '\x1B[2J\x1B[3J\x1B[H';
@@ -8,6 +9,11 @@ export interface IndentedTerminalEntry {
   text: string;
   indent: number;
 }
+
+const KEYCODES = {
+  COMMAND_CONTROL_C: '\u0003',
+  COMMAND_CONTROL_D: '\u0004',
+};
 
 function buildLogString(entries: TerminalEntry[], serverAddress: RegExp) {
   let str = '';
@@ -32,13 +38,13 @@ function buildLogString(entries: TerminalEntry[], serverAddress: RegExp) {
   return str;
 }
 
-export class TerminalLogger {
+export class Terminal extends EventEmitter {
   private originalFunctions: Partial<Record<keyof Console, Function>> = {};
   private previousDynamic: TerminalEntry[] = [];
   private started = false;
   private serverAddress?: RegExp;
 
-  start(serverAddress: string) {
+  start(serverAddress: string, watchMode: boolean) {
     this.serverAddress = new RegExp(serverAddress, 'g');
     // start off with an empty line
     console.log('');
@@ -68,6 +74,25 @@ export class TerminalLogger {
         });
       }
     }
+
+    if (watchMode) {
+      process.stdin.setRawMode(true);
+      process.stdin.resume();
+      process.stdin.setEncoding('utf8');
+      process.stdin.on('data', (key: string) => {
+        if (key === KEYCODES.COMMAND_CONTROL_C || key === KEYCODES.COMMAND_CONTROL_D) {
+          process.stdin.setRawMode(false);
+          this.emit('kill');
+          return;
+        }
+
+        if (key.toUpperCase() === 'D') {
+          this.emit('debug');
+          return;
+        }
+      });
+    }
+
     this.started = true;
   }
 

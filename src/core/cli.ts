@@ -15,10 +15,6 @@ const commandLineOptions = [
     defaultOption: true,
   },
   {
-    name: 'debug',
-    type: Boolean,
-  },
-  {
     name: 'watch',
     type: Boolean,
   },
@@ -60,8 +56,7 @@ const defaultCoverageConfig: CoverageConfig = {
   const config: TestRunnerConfig = {
     files: [],
     watch: false,
-    debug: false,
-    testRunnerImport: 'web-test-runner/dist/implementations/frameworks/mocha.js',
+    testFrameworkImport: 'web-test-runner/dist/implementations/frameworks/mocha.js',
     address: 'http://localhost',
     port: 9542,
     concurrency: 30,
@@ -78,9 +73,6 @@ const defaultCoverageConfig: CoverageConfig = {
   }
   if ('watch' in args) {
     config.watch = !!args.watch;
-  }
-  if ('debug' in args) {
-    config.debug = !!args.debug;
   }
   if (args.coverage) {
     config.coverage = defaultCoverageConfig;

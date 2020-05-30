@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import * as diff from 'diff';
 import { TestResultError } from '../TestSessionResult';
-import { TerminalEntry } from './TerminalLogger';
+import { TerminalEntry } from './Terminal';
 import { TestSession } from '../TestSession';
 
 const REGEXP_ERROR_LOCATION_BRACKETS = /\((.*)\)/;
