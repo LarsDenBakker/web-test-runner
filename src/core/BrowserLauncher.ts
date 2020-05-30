@@ -4,5 +4,6 @@ import { TestSession } from './TestSession';
 export interface BrowserLauncher {
   start(config: TestRunnerConfig): Promise<string[]>;
   stop(): Promise<void>;
-  runTests(sessions: TestSession[]): void;
+  startSession(session: TestSession): void;
+  stopSession(session: TestSession): void;
 }

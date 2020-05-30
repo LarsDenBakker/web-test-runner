@@ -5,7 +5,6 @@ import { BrowserLauncher } from './BrowserLauncher';
 import { TestSessionResult } from './TestSessionResult';
 import { TestSessionManager } from './TestSessionManager';
 import { TestReporter } from './reporter/TestReporter';
-import { TestRun } from './TestRun';
 import { getCoverageSummary } from './getCoverageSummary';
 
 export class TestRunner {
@@ -21,8 +20,7 @@ export class TestRunner {
   private updateTestProgressIntervalId?: NodeJS.Timer;
   private started = false;
   private stopped = false;
-  private testRuns: TestRun[] = [];
-  private currentTestRun?: TestRun;
+  private testRun = -1;
 
   constructor(config: TestRunnerConfig, testFiles: string[]) {
     this.config = config;
@@ -81,15 +79,14 @@ export class TestRunner {
       this.updateTestProgress();
 
       const sessionsArray = Array.from(this.manager.sessions.values());
-      const testRun = this.createTestRun(sessionsArray);
-      this.runTests(testRun);
+      this.runTests(sessionsArray);
     } catch (error) {
       console.error(error);
       this.kill();
     }
   }
 
-  private runTests(testRun: TestRun) {
+  private runTests(sessions: TestSession[]) {
     if (this.stopped) {
       return;
     }
@@ -100,17 +97,21 @@ export class TestRunner {
     }
 
     try {
+      this.testRun += 1;
       if (this.config.watch || this.config.debug) {
         this.reporter.reportTestRunStart(
-          testRun,
+          this.testRun,
           this.browserNames,
           this.favoriteBrowser!,
-          this.manager.sessionsByTestFile
+          this.manager.sessionsByTestFile,
+          this.manager.runningSessions
         );
       }
 
       for (const browser of this.browsers) {
-        browser.runTests(Array.from(testRun.sessions.values()));
+        for (const session of sessions) {
+          browser.startSession(session);
+        }
       }
     } catch (error) {
       console.error(error);
@@ -179,8 +180,7 @@ export class TestRunner {
         this.manager.updateSession({ ...session, status: SessionStatuses.INITIALIZING });
       }
 
-      const testRun = this.createTestRun(sessions);
-      this.runTests(testRun);
+      this.runTests(sessions);
     } catch (error) {
       console.error(error);
       this.kill();
@@ -193,11 +193,17 @@ export class TestRunner {
       if (!session) {
         throw new Error(`Unknown session ${sessionId}`);
       }
+
+      // TODO: find correct browser for session
+      for (const browser of this.browsers) {
+        browser.stopSession(session);
+      }
+
       this.manager.updateSession({ ...session, status: SessionStatuses.FINISHED, result });
 
       const sessionsForTestFile = this.manager.sessionsByTestFile.get(session.testFile)!;
       this.reporter.reportTestFileResults(
-        this.currentTestRun!,
+        this.testRun,
         session.testFile,
         this.browserNames,
         this.favoriteBrowser!,
@@ -239,7 +245,7 @@ export class TestRunner {
     try {
       this.reporter.reportTestProgress(this.config, {
         browserNames: this.browserNames,
-        testRun: this.currentTestRun!,
+        testRun: this.testRun,
         testFiles: this.testFiles,
         sessionsByBrowser: this.manager.sessionsByBrowser,
         initializingSessions: this.manager.initializingSessions,
@@ -250,12 +256,5 @@ export class TestRunner {
       console.error(error);
       this.kill();
     }
-  }
-
-  private createTestRun(sessions: TestSession[]): TestRun {
-    const testRun: TestRun = { number: this.testRuns.length + 1, startTime: Date.now(), sessions };
-    this.testRuns.push(testRun);
-    this.currentTestRun = testRun;
-    return testRun;
   }
 }

@@ -1,4 +1,3 @@
-import { TestRun } from '../TestRun';
 import { TestRunnerConfig, CoverageThresholdConfig } from '../TestRunnerConfig';
 import { TestProgressArgs, getTestProgressReport } from './getTestProgressReport';
 import { getSessionErrorsReport } from './getSessionErrorsReport';
@@ -19,17 +18,18 @@ export class TestReporter {
   }
 
   reportTestRunStart(
-    testRun: TestRun,
+    testRun: number,
     allBrowserNames: string[],
     favoriteBrowser: string,
-    sessionsByTestFile: Map<string, TestSession[]>
+    sessionsByTestFile: Map<string, TestSession[]>,
+    runningSessions: Set<string>
   ) {
     // Restart terminal
     this.logger.restart();
 
     // Log results of test files that are not being re-run
     for (const [testFile, sessions] of sessionsByTestFile) {
-      if (!testRun.sessions.some((s) => s.testFile === testFile)) {
+      if (!sessions.some((s) => runningSessions.has(s.id))) {
         this.reportTestFileResults(testRun, testFile, allBrowserNames, favoriteBrowser, sessions);
       }
     }
@@ -44,7 +44,7 @@ export class TestReporter {
   }
 
   reportTestFileResults(
-    testRun: TestRun,
+    testRun: number,
     testFile: string,
     allBrowserNames: string[],
     favoriteBrowser: string,
@@ -55,10 +55,10 @@ export class TestReporter {
       return;
     }
 
-    let reportedFiles = this.reportedFilesByTestRun.get(testRun.number);
+    let reportedFiles = this.reportedFilesByTestRun.get(testRun);
     if (!reportedFiles) {
       reportedFiles = new Set();
-      this.reportedFilesByTestRun.set(testRun.number, reportedFiles);
+      this.reportedFilesByTestRun.set(testRun, reportedFiles);
     }
 
     if (!reportedFiles?.has(testFile)) {

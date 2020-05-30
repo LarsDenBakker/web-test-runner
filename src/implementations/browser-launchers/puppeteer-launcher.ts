@@ -1,9 +1,10 @@
-import { launch, Browser } from 'puppeteer';
+import { launch, Browser, Page } from 'puppeteer';
 import { BrowserLauncher } from '../../core/BrowserLauncher';
 import { TestRunnerConfig } from '../../core/TestRunnerConfig';
 import { PARAM_SESSION_ID } from '../../core/constants';
 
 export function puppeteerLauncher(): BrowserLauncher {
+  const pages = new Map<String, Page>();
   let config: TestRunnerConfig;
   let serverAddress: string;
   let browser: Browser;
@@ -20,11 +21,18 @@ export function puppeteerLauncher(): BrowserLauncher {
       await browser.close();
     },
 
-    async runTests(sessions) {
-      for (const { id } of sessions) {
-        browser.newPage().then((page) => {
-          page.goto(`${serverAddress}?${PARAM_SESSION_ID}=${id}`);
-        });
+    startSession(session) {
+      browser.newPage().then((page) => {
+        pages.set(session.id, page);
+        page.goto(`${serverAddress}?${PARAM_SESSION_ID}=${session.id}`);
+      });
+    },
+
+    stopSession(session) {
+      const page = pages.get(session.id);
+      if (page) {
+        pages.delete(session.id);
+        page.close();
       }
     },
   };

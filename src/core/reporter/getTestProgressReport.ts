@@ -2,12 +2,11 @@ import chalk from 'chalk';
 import { TerminalEntry } from './TerminalLogger';
 import { TestSession, SessionStatuses } from '../TestSession';
 import { TestRunnerConfig } from '../TestRunnerConfig';
-import { TestRun } from '../TestRun';
 
 export interface TestProgressArgs {
   browserNames: string[];
   testFiles: string[];
-  testRun?: TestRun;
+  testRun: number;
   sessionsByBrowser: Map<string, TestSession[]>;
   initializingSessions: Set<string>;
   runningSessions: Set<string>;
@@ -88,7 +87,7 @@ export function getTestProgressReport(config: TestRunnerConfig, args: TestProgre
   } = args;
 
   const entries: TerminalEntry[] = [];
-  if (testRun && initializingSessions.size === 0 && runningSessions.size === 0) {
+  if (testRun !== -1 && initializingSessions.size === 0 && runningSessions.size === 0) {
     if (config.watch) {
       entries.push(chalk.bold(`Finished running tests, watching for file changes...`));
     } else if (config.debug) {

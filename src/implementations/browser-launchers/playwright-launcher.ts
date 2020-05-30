@@ -1,4 +1,4 @@
-import playwright from 'playwright';
+import playwright, { Browser, Page, LaunchOptions } from 'playwright';
 import { BrowserLauncher } from '../../core/BrowserLauncher';
 import { TestRunnerConfig } from '../../core/TestRunnerConfig';
 import { PARAM_SESSION_ID } from '../../core/constants';
@@ -14,6 +14,8 @@ export interface PlaywrightLauncherConfig {
 export function playwrightLauncher({
   browserTypes = ['chromium'],
 }: Partial<PlaywrightLauncherConfig> = {}): BrowserLauncher {
+  const pages = new Map<String, Page>();
+
   if (browserTypes.some((t) => !validBrowserTypes.includes(t))) {
     throw new Error(
       `Invalid browser types: ${browserTypes}. Valid browser types: ${validBrowserTypes.join(', ')}`
@@ -22,7 +24,7 @@ export function playwrightLauncher({
 
   let config: TestRunnerConfig;
   let serverAddress: string;
-  const browsers = new Map<string, playwright.Browser>();
+  const browsers = new Map<string, Browser>();
 
   return {
     async start(_config) {
@@ -33,7 +35,7 @@ export function playwrightLauncher({
       for (const type of browserTypes) {
         const name = `${type[0].toUpperCase()}${type.substring(1)}`;
         browserNames.push(name);
-        const options: playwright.LaunchOptions =
+        const options: LaunchOptions =
           type === 'chromium'
             ? { devtools: config.debug }
             : // firefox and safari don't support devtools option
@@ -51,16 +53,23 @@ export function playwrightLauncher({
       }
     },
 
-    async runTests(testSets) {
-      for (const { id, browserName } of testSets) {
-        const browser = browsers.get(browserName);
-        if (!browser) {
-          throw new Error(`Unknown browser name: ${browser}`);
-        }
+    startSession(session) {
+      const browser = browsers.get(session.browserName);
+      if (!browser) {
+        throw new Error(`Unknown browser name: ${browser}`);
+      }
 
-        browser.newPage().then((page) => {
-          page.goto(`${serverAddress}?${PARAM_SESSION_ID}=${id}`);
-        });
+      browser.newPage().then((page) => {
+        pages.set(session.id, page);
+        page.goto(`${serverAddress}?${PARAM_SESSION_ID}=${session.id}`);
+      });
+    },
+
+    stopSession(session) {
+      const page = pages.get(session.id);
+      if (page) {
+        pages.delete(session.id);
+        page.close();
       }
     },
   };

@@ -5,7 +5,6 @@ import { BrowserLauncher } from '../../core/BrowserLauncher';
 import { PARAM_SESSION_ID } from '../../core/constants';
 import { promisify } from 'util';
 import { TestRunnerConfig } from '../../core/TestRunnerConfig';
-import { TestSession } from '../../core/TestSession';
 
 export interface UserAgent {
   browserName?: string;
@@ -39,8 +38,7 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
   }
 
   const { userAgents, buildName, project } = args;
-  const browsers = new Map<string, UserAgent>();
-  const drivers: webdriver.ThenableWebDriver[] = [];
+  const drivers = new Map<string, ThenableWebDriver>();
   let config: TestRunnerConfig;
   let serverAddress: string;
   let bsLocal: browserstack.Local;
@@ -59,40 +57,6 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
 
       await promisify(bsLocal.start).bind(bsLocal)(bsLocalArgs);
       for (const userAgent of userAgents) {
-        browsers.set(createBrowserName(userAgent), userAgent);
-      }
-      return Array.from(browsers.keys());
-    },
-
-    async stop() {
-      process.kill((bsLocal as any).pid);
-      await Promise.all(drivers.map((driver) => driver.quit().catch(() => {})));
-      // TODO: kill selenium
-      // for (const workerId of workerIds) {
-      //   await promisify(client.terminateWorker).bind(client)(workerId);
-      // }
-      await promisify(bsLocal.stop).bind(bsLocal);
-    },
-
-    async runTests(sessionsArray) {
-      const sessionsByUserAgent = new Map<UserAgent, TestSession[]>();
-
-      for (const session of sessionsArray) {
-        const userAgent = browsers.get(session.browserName);
-        if (!userAgent) {
-          throw new Error(`Could not find user agent for browser: ${session.browserName}`);
-        }
-
-        let s = sessionsByUserAgent.get(userAgent);
-        if (!s) {
-          s = [];
-          sessionsByUserAgent.set(userAgent, s);
-        }
-
-        s.push(session);
-      }
-
-      for (const [userAgent, sessions] of sessionsByUserAgent) {
         const capabilities = {
           timeout: 300,
           name: 'web-test-runner test',
@@ -118,12 +82,35 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
           .withCapabilities(capabilities)
           .build();
 
-        drivers.push(driver);
-
-        for (const session of sessions) {
-          driver.executeScript(`window.open('${serverAddress}?${PARAM_SESSION_ID}=${session.id}')`);
-        }
+        drivers.set(createBrowserName(userAgent), driver);
       }
+
+      return Array.from(drivers.keys());
+    },
+
+    async stop() {
+      process.kill((bsLocal as any).pid);
+      await Promise.all(
+        Array.from(drivers.values()).map((driver) => driver.quit().catch(() => {}))
+      );
+      // TODO: kill selenium
+      // for (const workerId of workerIds) {
+      //   await promisify(client.terminateWorker).bind(client)(workerId);
+      // }
+      await promisify(bsLocal.stop).bind(bsLocal);
+    },
+
+    startSession(session) {
+      const driver = drivers.get(session.browserName);
+      if (!driver) {
+        throw new Error(`Unknown browser ${session.browserName}`);
+      }
+
+      driver.executeScript(`window.open('${serverAddress}?${PARAM_SESSION_ID}=${session.id}')`);
+    },
+
+    stopSession(session) {
+      // TODO: Find the right browser tab and close it
     },
   };
 }

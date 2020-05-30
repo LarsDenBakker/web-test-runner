@@ -1,5 +1,4 @@
-import { createCoverageMap, CoverageSummaryData } from 'istanbul-lib-coverage';
-import { TestSession } from '../TestSession';
+import { CoverageSummaryData } from 'istanbul-lib-coverage';
 import { CoverageThresholdConfig } from '../TestRunnerConfig';
 import { TerminalEntry } from './TerminalLogger';
 import chalk from 'chalk';
