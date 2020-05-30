@@ -6,7 +6,7 @@ export class TestSessionManager {
   public sessionsByBrowser = new Map<string, TestSession[]>();
   public sessionsByTestFile = new Map<string, TestSession[]>();
   public finishedSessionsByTestFile = new Map<string, TestSession[]>();
-  public initializingSessions = new Set<string>();
+  public scheduledSessions = new Set<string>();
   public runningSessions = new Set<string>();
   public finishedSessions = new Set<string>();
   public passedSessions = new Map<string, TestSession>();
@@ -23,16 +23,16 @@ export class TestSessionManager {
       removeFromMappedArray(this.finishedSessionsByTestFile, newSession.testFile, newSession);
     }
 
-    if (newSession.status === SessionStatuses.INITIALIZING) {
-      this.initializingSessions.add(newSession.id);
-      this.runningSessions.add(newSession.id);
+    if (newSession.status === SessionStatuses.SCHEDULED) {
+      this.scheduledSessions.add(newSession.id);
+      this.runningSessions.delete(newSession.id);
       this.finishedSessions.delete(newSession.id);
     } else if (newSession.status === SessionStatuses.RUNNING) {
-      this.initializingSessions.delete(newSession.id);
+      this.scheduledSessions.delete(newSession.id);
       this.runningSessions.add(newSession.id);
       this.finishedSessions.delete(newSession.id);
     } else if (newSession.status === SessionStatuses.FINISHED) {
-      this.initializingSessions.delete(newSession.id);
+      this.scheduledSessions.delete(newSession.id);
       this.runningSessions.delete(newSession.id);
       this.finishedSessions.add(newSession.id);
     }

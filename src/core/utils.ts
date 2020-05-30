@@ -48,7 +48,7 @@ export function createTestSessions(browserNames: string[], testFiles: string[]) 
       id: uuid(),
       group,
       browserName,
-      status: SessionStatuses.INITIALIZING,
+      status: SessionStatuses.SCHEDULED,
       testFile,
     }));
 

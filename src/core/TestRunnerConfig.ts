@@ -25,4 +25,5 @@ export interface TestRunnerConfig {
   watch?: boolean;
   debug?: boolean;
   coverage?: boolean | CoverageConfig;
+  concurrency?: number;
 }

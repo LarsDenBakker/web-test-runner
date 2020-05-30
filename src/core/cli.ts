@@ -27,6 +27,10 @@ const commandLineOptions = [
     type: Boolean,
   },
   {
+    name: 'concurrency',
+    type: Boolean,
+  },
+  {
     name: 'config',
     type: String,
   },
@@ -60,6 +64,7 @@ const defaultCoverageConfig: CoverageConfig = {
     testRunnerImport: 'web-test-runner/dist/implementations/frameworks/mocha.js',
     address: 'http://localhost',
     port: 9542,
+    concurrency: 30,
     browsers: puppeteerLauncher(),
     server: createEsDevServer(),
 
@@ -77,6 +82,9 @@ const defaultCoverageConfig: CoverageConfig = {
   }
   if (args.coverage) {
     config.coverage = defaultCoverageConfig;
+  }
+  if ('concurrency' in args) {
+    config.concurrency = args.concurrency;
   }
 
   if (!config.files) {

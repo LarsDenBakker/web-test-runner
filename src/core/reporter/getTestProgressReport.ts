@@ -8,7 +8,7 @@ export interface TestProgressArgs {
   testFiles: string[];
   testRun: number;
   sessionsByBrowser: Map<string, TestSession[]>;
-  initializingSessions: Set<string>;
+  scheduledSessions: Set<string>;
   runningSessions: Set<string>;
   startTime: number;
 }
@@ -81,13 +81,13 @@ export function getTestProgressReport(config: TestRunnerConfig, args: TestProgre
     testRun,
     testFiles,
     sessionsByBrowser,
-    initializingSessions,
+    scheduledSessions,
     runningSessions,
     startTime,
   } = args;
 
   const entries: TerminalEntry[] = [];
-  if (testRun !== -1 && initializingSessions.size === 0 && runningSessions.size === 0) {
+  if (testRun !== -1 && scheduledSessions.size === 0 && runningSessions.size === 0) {
     if (config.watch) {
       entries.push(chalk.bold(`Finished running tests, watching for file changes...`));
     } else if (config.debug) {

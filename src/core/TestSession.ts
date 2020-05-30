@@ -1,9 +1,9 @@
 import { TestSessionResult } from './TestSessionResult';
 
-export type SessionStatus = 'INITIALIZING' | 'RUNNING' | 'FINISHED';
+export type SessionStatus = 'SCHEDULED' | 'RUNNING' | 'FINISHED';
 
 export const SessionStatuses = {
-  INITIALIZING: 'INITIALIZING' as SessionStatus,
+  SCHEDULED: 'SCHEDULED' as SessionStatus,
   RUNNING: 'RUNNING' as SessionStatus,
   FINISHED: 'FINISHED' as SessionStatus,
 };

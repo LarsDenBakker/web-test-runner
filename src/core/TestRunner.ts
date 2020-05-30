@@ -6,6 +6,7 @@ import { TestSessionResult } from './TestSessionResult';
 import { TestSessionManager } from './TestSessionManager';
 import { TestReporter } from './reporter/TestReporter';
 import { getCoverageSummary } from './getCoverageSummary';
+import { TestScheduler } from './TestSessionScheduler';
 
 export class TestRunner {
   private config: TestRunnerConfig;
@@ -16,6 +17,7 @@ export class TestRunner {
   private serverAddress: string;
   private manager = new TestSessionManager();
   private reporter = new TestReporter();
+  private scheduler: TestScheduler;
   private startTime = -1;
   private updateTestProgressIntervalId?: NodeJS.Timer;
   private started = false;
@@ -27,6 +29,7 @@ export class TestRunner {
     this.testFiles = testFiles;
     this.browsers = Array.isArray(config.browsers) ? config.browsers : [config.browsers];
     this.serverAddress = `${config.address}:${config.port}/`;
+    this.scheduler = new TestScheduler(config, this.browsers, this.manager);
   }
 
   async start() {
@@ -108,11 +111,7 @@ export class TestRunner {
         );
       }
 
-      for (const browser of this.browsers) {
-        for (const session of sessions) {
-          browser.startSession(session);
-        }
-      }
+      this.scheduler.schedule(sessions);
     } catch (error) {
       console.error(error);
       this.kill();
@@ -176,10 +175,6 @@ export class TestRunner {
         return session;
       });
 
-      for (const session of sessions) {
-        this.manager.updateSession({ ...session, status: SessionStatuses.INITIALIZING });
-      }
-
       this.runTests(sessions);
     } catch (error) {
       console.error(error);
@@ -198,8 +193,8 @@ export class TestRunner {
       for (const browser of this.browsers) {
         browser.stopSession(session);
       }
-
       this.manager.updateSession({ ...session, status: SessionStatuses.FINISHED, result });
+      this.scheduler.runScheduled();
 
       const sessionsForTestFile = this.manager.sessionsByTestFile.get(session.testFile)!;
       this.reporter.reportTestFileResults(
@@ -210,7 +205,7 @@ export class TestRunner {
         sessionsForTestFile
       );
 
-      const finishedAll = this.manager.runningSessions.size === 0;
+      const finishedAll = this.manager.finishedSessions.size === this.manager.sessions.size;
       if (finishedAll) {
         let passedCoverage = true;
         if (this.config.coverage) {
@@ -248,7 +243,7 @@ export class TestRunner {
         testRun: this.testRun,
         testFiles: this.testFiles,
         sessionsByBrowser: this.manager.sessionsByBrowser,
-        initializingSessions: this.manager.initializingSessions,
+        scheduledSessions: this.manager.scheduledSessions,
         runningSessions: this.manager.runningSessions,
         startTime: this.startTime,
       });
