@@ -127,7 +127,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                       type: 'html',
                       body: config.testRunnerHtml
                         ? config.testRunnerHtml(config)
-                        : `<html>
+                        : `<!DOCTYPE html><html>
   <head></head>
   <body>
     <script type="module">
