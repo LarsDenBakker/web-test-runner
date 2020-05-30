@@ -160,7 +160,8 @@ export function getTestProgressReport(config: TestRunnerConfig, args: TestProgre
 
   entries.push('');
   if (!config.watch) {
-    entries.push(`Duration: ${Math.floor((Date.now() - startTime) / 1000)}s`);
+    const durationInSec = (Date.now() - startTime) / 1000;
+    entries.push(`Duration: ${Math.trunc(durationInSec * 10) / 10}s`);
     entries.push('');
   }
 
