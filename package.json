@@ -17,6 +17,7 @@
     "test:404": "npm run test:bare \"demo/test/*404*.test.js\"",
     "test:logs": "npm run test:bare \"demo/test/*log*.test.js\"",
     "test:playwright": "npm run test -- --config \"demo/playwright.config.js\"",
+    "test:puppeteer": "npm run test -- --config \"demo/puppeteer.config.js\"",
     "test:browserstack": "npm run test -- --config \"demo/browserstack.config.js\"",
     "release": "npm publish",
     "start": "es-dev-server --open demo/ --node-resolve"

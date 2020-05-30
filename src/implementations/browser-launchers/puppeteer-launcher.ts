@@ -1,9 +1,15 @@
-import { launch, Browser, Page } from 'puppeteer';
+import { Browser, launch, Page } from 'puppeteer';
 import { BrowserLauncher } from '../../core/BrowserLauncher';
-import { TestRunnerConfig } from '../../core/TestRunnerConfig';
 import { PARAM_SESSION_ID } from '../../core/constants';
+import { TestRunnerConfig } from '../../core/TestRunnerConfig';
 
-export function puppeteerLauncher(): BrowserLauncher {
+export interface PuppeteerLauncherConfig {
+  args: string[];
+}
+
+export function puppeteerLauncher({
+  args,
+}: Partial<PuppeteerLauncherConfig> = {}): BrowserLauncher {
   const pages = new Map<String, Page>();
   let config: TestRunnerConfig;
   let serverAddress: string;
@@ -12,7 +18,7 @@ export function puppeteerLauncher(): BrowserLauncher {
   return {
     async start(_config) {
       config = _config;
-      browser = await launch({ devtools: config.debug });
+      browser = await launch({ devtools: config.debug, args });
       serverAddress = `${config.address}:${config.port}/`;
       return ['Chrome'];
     },
