@@ -1,3 +1,4 @@
+import { CoverageSummaryData } from 'istanbul-lib-coverage';
 import { TestRunnerConfig, CoverageThresholdConfig } from '../TestRunnerConfig';
 import { TestProgressArgs, getTestProgressReport } from './getTestProgressReport';
 import { getSessionErrorsReport } from './getSessionErrorsReport';
@@ -5,7 +6,6 @@ import { TestSession, SessionStatuses } from '../TestSession';
 import { Terminal } from './Terminal';
 import { getTestFileReport } from './getTestFileReport';
 import { getTestCoverageReport } from './getTestCoverageReport';
-import { CoverageSummaryData } from 'istanbul-lib-coverage';
 
 export class TestReporter {
   private reportedFilesByTestRun = new Map<number, Set<string>>();
@@ -21,8 +21,10 @@ export class TestReporter {
     runningSessions: Set<string>,
     serverAddress: string
   ) {
-    // Restart terminal
-    this.terminal.restart();
+    if (testRun !== 0) {
+      // Restart terminal
+      this.terminal.restart();
+    }
 
     // Log results of test files that are not being re-run
     for (const [testFile, sessions] of sessionsByTestFile) {
@@ -87,7 +89,7 @@ export class TestReporter {
 
   reportTestProgress(config: TestRunnerConfig, args: TestProgressArgs) {
     const dynamicEntries = getTestProgressReport(config, args);
-    dynamicEntries.push(`\nPress D to debug in the browser.`)
+    dynamicEntries.push(`\nPress D to debug in the browser.`);
     this.terminal.logDynamic(dynamicEntries);
   }
 
