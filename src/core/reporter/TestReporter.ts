@@ -22,6 +22,7 @@ export class TestReporter {
     allBrowserNames: string[],
     favoriteBrowser: string,
     sessionsByTestFile: Map<string, TestSession[]>,
+    scheduledSessions: Set<string>,
     runningSessions: Set<string>
   ) {
     // Restart terminal
@@ -29,7 +30,7 @@ export class TestReporter {
 
     // Log results of test files that are not being re-run
     for (const [testFile, sessions] of sessionsByTestFile) {
-      if (!sessions.some((s) => runningSessions.has(s.id))) {
+      if (!sessions.some((s) => scheduledSessions.has(s.id) || runningSessions.has(s.id))) {
         this.reportTestFileResults(testRun, testFile, allBrowserNames, favoriteBrowser, sessions);
       }
     }
