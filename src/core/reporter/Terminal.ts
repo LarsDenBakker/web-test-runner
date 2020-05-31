@@ -11,8 +11,8 @@ export interface IndentedTerminalEntry {
 }
 
 const KEYCODES = {
-  COMMAND_CONTROL_C: '\u0003',
-  COMMAND_CONTROL_D: '\u0004',
+  CTRL_C: '\u0003',
+  CTRL_D: '\u0004',
 };
 
 function buildLogString(entries: TerminalEntry[], serverAddress: RegExp) {
@@ -80,7 +80,7 @@ export class Terminal extends EventEmitter {
       process.stdin.resume();
       process.stdin.setEncoding('utf8');
       process.stdin.on('data', (key: string) => {
-        if (key === KEYCODES.COMMAND_CONTROL_C || key === KEYCODES.COMMAND_CONTROL_D) {
+        if (key === KEYCODES.CTRL_C || key === KEYCODES.CTRL_D) {
           process.stdin.setRawMode(false);
           this.emit('kill');
           return;
