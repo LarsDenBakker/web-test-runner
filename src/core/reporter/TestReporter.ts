@@ -2,17 +2,11 @@ import { CoverageSummaryData } from 'istanbul-lib-coverage';
 import { TestRunnerConfig, CoverageThresholdConfig } from '../TestRunnerConfig';
 import { TestProgressArgs, getTestProgressReport } from './getTestProgressReport';
 import { getSessionErrorsReport } from './getSessionErrorsReport';
-import { TestSession } from '../TestSession';
 import { Terminal } from './Terminal';
 import { getTestFileReport } from './getTestFileReport';
 import { getTestCoverageReport } from './getTestCoverageReport';
 import { TestSessionManager } from '../TestSessionManager';
-import {
-  STATUS_SCHEDULED,
-  STATUS_INITIALIZING,
-  STATUS_STARTED,
-  STATUS_FINISHED,
-} from '../TestSessionStatus';
+import { STATUS_FINISHED } from '../TestSessionStatus';
 
 export class TestReporter {
   private reportedFilesByTestRun = new Map<number, Set<string>>();
