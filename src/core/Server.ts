@@ -1,10 +1,10 @@
 import { TestRunnerConfig } from './TestRunnerConfig.js';
-import { TestSession } from './TestSession';
 import { TestSessionResult } from './TestSessionResult';
+import { TestSessionManager } from './TestSessionManager.js';
 
 export interface ServerStartArgs {
   config: TestRunnerConfig;
-  sessions: Map<string, TestSession>;
+  sessions: TestSessionManager;
   testFiles: string[];
   onSessionStarted: (id: string) => void;
   onSessionFinished: (id: string, result: TestSessionResult) => void;

@@ -10,12 +10,12 @@ export const coverageTypes: (keyof CoverageSummaryData)[] = [
 ];
 
 export function getCoverageSummary(
-  sessions: Map<string, TestSession>,
+  sessions: Iterable<TestSession>,
   coverageThreshold?: CoverageThresholdConfig
 ): { coverageData: CoverageSummaryData; passed: boolean } {
   const coverageMap = createCoverageMap();
 
-  for (const session of sessions.values()) {
+  for (const session of sessions) {
     if (session.result!.testCoverage) {
       coverageMap.merge(session.result!.testCoverage);
     }

@@ -1,95 +1,91 @@
 import { EventEmitter } from 'events';
 import { TestSessionManager } from './TestSessionManager';
-import { TestSession, SessionStatuses } from './TestSession';
+import { TestSession } from './TestSession';
 import { TestRunnerConfig } from './TestRunnerConfig';
 import { BrowserLauncher } from './BrowserLauncher';
+import {
+  STATUS_SCHEDULED,
+  STATUS_INITIALIZING,
+  STATUS_STARTED,
+  STATUS_FINISHED,
+} from './TestSessionStatus';
 
 export class TestScheduler extends EventEmitter {
   constructor(
     private config: TestRunnerConfig,
     private browsers: BrowserLauncher[],
-    private manager: TestSessionManager
+    private sessions: TestSessionManager
   ) {
     super();
   }
 
-  async schedule(testRun: number, sessions: TestSession[]) {
-    for (const session of sessions) {
-      this.manager.updateSession({
-        ...session,
-        status: SessionStatuses.SCHEDULED,
-      });
+  async schedule(testRun: number, sessionsToSchedule: Iterable<TestSession>) {
+    for (const session of sessionsToSchedule) {
+      this.sessions.update({ ...session, status: STATUS_SCHEDULED });
     }
 
     return this.runScheduled(testRun);
   }
 
-  async runScheduled(testRun: number) {
-    const scheduleTasks = [];
-    const it = this.manager.scheduledSessions[Symbol.iterator]();
+  runScheduled(testRun: number): Promise<void[]> {
+    const scheduleTasks: Promise<void>[] = [];
+    const scheduledIt = this.sessions.forStatus(STATUS_SCHEDULED);
+    const runningCount = Array.from(this.sessions.forStatus(STATUS_INITIALIZING, STATUS_STARTED))
+      .length;
+    const count = this.config.concurrency! - runningCount;
 
-    while (this.manager.runningSessions.size < this.config.concurrency!) {
-      const { done, value } = it.next();
+    for (let i = 0; i < count; i += 1) {
+      const { done, value } = scheduledIt.next();
       if (done || !value) {
-        return;
+        break;
       }
-      const session = this.manager.sessions.get(value);
-      if (!session) {
-        throw new Error(`Could not find session ${value}`);
-      }
-      scheduleTasks.push(this.runSession(testRun, session));
+      scheduleTasks.push(this.runSession(testRun, value));
     }
 
     return Promise.all(scheduleTasks);
   }
 
   private runSession(testRun: number, session: TestSession) {
-    this.manager.updateSession({
-      ...session,
-      testRun,
-      status: SessionStatuses.INITIALIZING,
-    });
+    this.sessions.update({ ...session, testRun, status: STATUS_INITIALIZING });
 
     setTimeout(() => {
-      const updatedSession = this.manager.sessions.get(session.id)!;
-      if (updatedSession.testRun !== testRun) {
+      const upToDateSession = this.sessions.get(session.id)!;
+      if (upToDateSession.testRun !== testRun) {
         // session reloaded in the meantime
         return;
       }
 
-      if (updatedSession.status === SessionStatuses.INITIALIZING) {
+      if (upToDateSession.status === STATUS_INITIALIZING) {
         this.setSessionTimedout(
-          updatedSession,
+          upToDateSession,
           `Did not receive a start signal from browser after ${this.config.sessionStartTimeout}ms.`
         );
         return;
       }
 
-      if (updatedSession.status === SessionStatuses.FINISHED) {
+      if (upToDateSession.status === STATUS_FINISHED) {
         // The session finished by now
         return;
       }
 
       setTimeout(() => {
-        const updatedSession = this.manager.sessions.get(session.id)!;
-        if (updatedSession.testRun !== testRun) {
+        const upToDateSession = this.sessions.get(session.id)!;
+        if (upToDateSession.testRun !== testRun) {
           // session reloaded in the meantime
           return;
         }
 
-        if (updatedSession.status !== SessionStatuses.FINISHED) {
+        if (upToDateSession.status !== STATUS_FINISHED) {
           this.setSessionTimedout(
-            updatedSession,
+            upToDateSession,
             `Browser did not finish within ${this.config.sessionStartTimeout}ms.`
           );
         }
       }, this.config.sessionFinishTimeout!);
     }, this.config.sessionStartTimeout!);
 
-    // TODO: Select associated browser instead of iterating all browsers
-    for (const browser of this.browsers) {
-      return browser.startSession(session);
-    }
+    // TODO: Select associated browser
+    return this.browsers[0]!.startSession(session);
   }
 
   private setSessionTimedout(session: TestSession, message: string) {

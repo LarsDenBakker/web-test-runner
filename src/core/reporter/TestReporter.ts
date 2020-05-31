@@ -2,23 +2,28 @@ import { CoverageSummaryData } from 'istanbul-lib-coverage';
 import { TestRunnerConfig, CoverageThresholdConfig } from '../TestRunnerConfig';
 import { TestProgressArgs, getTestProgressReport } from './getTestProgressReport';
 import { getSessionErrorsReport } from './getSessionErrorsReport';
-import { TestSession, SessionStatuses } from '../TestSession';
+import { TestSession } from '../TestSession';
 import { Terminal } from './Terminal';
 import { getTestFileReport } from './getTestFileReport';
 import { getTestCoverageReport } from './getTestCoverageReport';
+import { TestSessionManager } from '../TestSessionManager';
+import {
+  STATUS_SCHEDULED,
+  STATUS_INITIALIZING,
+  STATUS_STARTED,
+  STATUS_FINISHED,
+} from '../TestSessionStatus';
 
 export class TestReporter {
   private reportedFilesByTestRun = new Map<number, Set<string>>();
 
-  constructor(private terminal: Terminal) {}
+  constructor(private terminal: Terminal, private sessions: TestSessionManager) {}
 
   reportTestRunStart(
     testRun: number,
+    testFiles: string[],
     allBrowserNames: string[],
     favoriteBrowser: string,
-    sessionsByTestFile: Map<string, TestSession[]>,
-    scheduledSessions: Set<string>,
-    runningSessions: Set<string>,
     serverAddress: string
   ) {
     if (testRun !== 0) {
@@ -27,17 +32,14 @@ export class TestReporter {
     }
 
     // Log results of test files that are not being re-run
-    for (const [testFile, sessions] of sessionsByTestFile) {
-      if (!sessions.some((s) => scheduledSessions.has(s.id) || runningSessions.has(s.id))) {
-        this.reportTestFileResults(
-          testRun,
-          testFile,
-          allBrowserNames,
-          favoriteBrowser,
-          sessions,
-          serverAddress
-        );
-      }
+    for (const testFile of testFiles) {
+      this.reportTestFileResults(
+        testRun,
+        testFile,
+        allBrowserNames,
+        favoriteBrowser,
+        serverAddress
+      );
     }
   }
 
@@ -54,10 +56,10 @@ export class TestReporter {
     testFile: string,
     allBrowserNames: string[],
     favoriteBrowser: string,
-    sessionsForTestFile: TestSession[],
     serverAddress: string
   ) {
-    const allFinished = sessionsForTestFile.every((s) => s.status === SessionStatuses.FINISHED);
+    const sessionsForTestFile = Array.from(this.sessions.forTestFile(testFile));
+    const allFinished = sessionsForTestFile.every((s) => s.status === STATUS_FINISHED);
     if (!allFinished) {
       return;
     }
@@ -82,8 +84,8 @@ export class TestReporter {
     }
   }
 
-  reportSessionErrors(failedSessions: Map<string, TestSession>, serverAddress: string) {
-    const sessionErrorsReport = getSessionErrorsReport(failedSessions, serverAddress);
+  reportSessionErrors(serverAddress: string) {
+    const sessionErrorsReport = getSessionErrorsReport(this.sessions.failed(), serverAddress);
     this.terminal.logStatic(sessionErrorsReport);
   }
 

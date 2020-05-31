@@ -135,7 +135,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                   if (context.path === '/debug/') {
                     return {
                       type: 'html',
-                      body: createDebugPage(Array.from(sessions.values())),
+                      body: createDebugPage(sessions),
                     };
                   }
                 },

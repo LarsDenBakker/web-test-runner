@@ -1,15 +1,19 @@
 import chalk from 'chalk';
 import { TerminalEntry } from './Terminal';
-import { TestSession, SessionStatuses } from '../TestSession';
 import { TestRunnerConfig } from '../TestRunnerConfig';
+import { TestSessionManager } from '../TestSessionManager';
+import {
+  STATUS_SCHEDULED,
+  STATUS_INITIALIZING,
+  STATUS_STARTED,
+  STATUS_FINISHED,
+} from '../TestSessionStatus';
 
 export interface TestProgressArgs {
   browserNames: string[];
   testFiles: string[];
   testRun: number;
-  sessionsByBrowser: Map<string, TestSession[]>;
-  scheduledSessions: Set<string>;
-  runningSessions: Set<string>;
+  sessions: TestSessionManager;
   startTime: number;
 }
 
@@ -76,18 +80,14 @@ function getProgressReport(
 }
 
 export function getTestProgressReport(config: TestRunnerConfig, args: TestProgressArgs) {
-  const {
-    browserNames,
-    testRun,
-    testFiles,
-    sessionsByBrowser,
-    scheduledSessions,
-    runningSessions,
-    startTime,
-  } = args;
+  const { browserNames, testRun, testFiles, sessions, startTime } = args;
 
   const entries: TerminalEntry[] = [];
-  if (testRun !== -1 && scheduledSessions.size === 0 && runningSessions.size === 0) {
+  const unfinishedSessions = Array.from(
+    sessions.forStatus(STATUS_SCHEDULED, STATUS_INITIALIZING, STATUS_STARTED)
+  );
+
+  if (testRun !== -1 && unfinishedSessions.length === 0) {
     if (config.watch) {
       entries.push(chalk.bold(`Finished running tests, watching for file changes...`));
     } else {
@@ -105,13 +105,13 @@ export function getTestProgressReport(config: TestRunnerConfig, args: TestProgre
 
   const minWidth = browserNames.sort((a, b) => b.length - a.length)[0].length + 1;
   for (const browser of browserNames) {
-    const sessions = sessionsByBrowser.get(browser)!;
+    const sessionsForBrowser = sessions.forBrowser(browser);
     let finishedFilesForBrowser = 0;
     let passedTestsForBrowser = 0;
     let failedTestsForBrowser = 0;
 
-    for (const session of sessions) {
-      if (session.status === SessionStatuses.FINISHED) {
+    for (const session of sessionsForBrowser) {
+      if (session.status === STATUS_FINISHED) {
         const { testFile, result } = session;
         finishedFiles.add(testFile);
         finishedFilesForBrowser += 1;

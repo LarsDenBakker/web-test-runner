@@ -1,13 +1,14 @@
-import { SessionStatuses, TestSession } from './TestSession';
+import { TestSession } from './TestSession';
 import { TestRunnerConfig } from './TestRunnerConfig';
 import { createTestSessions } from './utils';
 import { BrowserLauncher } from './BrowserLauncher';
 import { TestSessionResult } from './TestSessionResult';
-import { TestSessionManager } from './TestSessionManager';
 import { TestReporter } from './reporter/TestReporter';
 import { getCoverageSummary } from './getCoverageSummary';
 import { TestScheduler } from './TestSessionScheduler';
 import { Terminal } from './reporter/Terminal';
+import { TestSessionManager } from './TestSessionManager';
+import { STATUS_STARTED, STATUS_FINISHED } from './TestSessionStatus';
 
 export class TestRunner {
   private config: TestRunnerConfig;
@@ -16,9 +17,9 @@ export class TestRunner {
   private testFiles: string[];
   private favoriteBrowser?: string;
   private serverAddress: string;
-  private manager = new TestSessionManager();
   private terminal = new Terminal();
-  private reporter = new TestReporter(this.terminal);
+  private sessions = new TestSessionManager();
+  private reporter = new TestReporter(this.terminal, this.sessions);
   private scheduler: TestScheduler;
   private startTime = -1;
   private updateTestProgressIntervalId?: NodeJS.Timer;
@@ -31,7 +32,7 @@ export class TestRunner {
     this.testFiles = testFiles;
     this.browsers = Array.isArray(config.browsers) ? config.browsers : [config.browsers];
     this.serverAddress = `${config.address}:${config.port}/`;
-    this.scheduler = new TestScheduler(config, this.browsers, this.manager);
+    this.scheduler = new TestScheduler(config, this.browsers, this.sessions);
     this.scheduler.on('session-timed-out', ({ id, result }) => {
       this.onSessionFinished(id, result);
     });
@@ -57,6 +58,7 @@ export class TestRunner {
       this.startTime = Date.now();
 
       this.browserNames = [];
+
       for (const browser of this.browsers) {
         const names = await browser.start(this.config);
         if (
@@ -68,6 +70,7 @@ export class TestRunner {
         }
         this.browserNames.push(...names);
       }
+
       this.favoriteBrowser =
         this.browserNames.find((browserName) => {
           const n = browserName.toLowerCase();
@@ -76,15 +79,15 @@ export class TestRunner {
 
       const createdSessions = createTestSessions(this.browserNames, this.testFiles);
 
-      for (const session of createdSessions.values()) {
-        this.manager.updateSession(session);
+      for (const session of createdSessions) {
+        this.sessions.add(session);
       }
 
       this.terminal.start(this.serverAddress, !!this.config.watch);
 
       await this.config.server.start({
         config: this.config,
-        sessions: this.manager.sessions,
+        sessions: this.sessions,
         testFiles: this.testFiles,
         onSessionStarted: this.onSessionStarted,
         onSessionFinished: this.onSessionFinished,
@@ -96,15 +99,13 @@ export class TestRunner {
       }, 500);
       this.updateTestProgress();
 
-      const sessionsArray = Array.from(this.manager.sessions.values());
-
-      this.runTests(sessionsArray);
+      this.runTests(this.sessions.all());
     } catch (error) {
       this.kill(error);
     }
   }
 
-  private async runTests(sessions: TestSession[]) {
+  private async runTests(sessions: Iterable<TestSession>) {
     if (this.stopped) {
       return;
     }
@@ -120,11 +121,9 @@ export class TestRunner {
       await this.scheduler.schedule(this.testRun, sessions);
       this.reporter.reportTestRunStart(
         this.testRun,
+        this.testFiles,
         this.browserNames,
         this.favoriteBrowser!,
-        this.manager.sessionsByTestFile,
-        this.manager.scheduledSessions,
-        this.manager.runningSessions,
         this.serverAddress
       );
     } catch (error) {
@@ -172,12 +171,12 @@ export class TestRunner {
 
   private onSessionStarted = async (sessionId: string) => {
     try {
-      const session = this.manager.sessions.get(sessionId);
+      const session = this.sessions.get(sessionId);
       if (!session) {
         throw new Error(`Unknown session ${sessionId}`);
       }
 
-      this.manager.updateSession({ ...session, status: SessionStatuses.STARTED });
+      this.sessions.update({ ...session, status: STATUS_STARTED });
       this.updateTestProgress();
     } catch (error) {
       this.kill(error);
@@ -187,7 +186,7 @@ export class TestRunner {
   private onRerunSessions = (sessionIds: string[]) => {
     try {
       const sessions = sessionIds.map((id) => {
-        const session = this.manager.sessions.get(id);
+        const session = this.sessions.get(id);
         if (!session) {
           throw new Error(`Unknown session ${id}.`);
         }
@@ -202,7 +201,7 @@ export class TestRunner {
 
   private onSessionFinished = async (sessionId: string, result: TestSessionResult) => {
     try {
-      const session = this.manager.sessions.get(sessionId);
+      const session = this.sessions.get(sessionId);
       if (!session) {
         throw new Error(`Unknown session ${sessionId}`);
       }
@@ -211,30 +210,30 @@ export class TestRunner {
       for (const browser of this.browsers) {
         browser.stopSession(session);
       }
-      this.manager.updateSession({ ...session, status: SessionStatuses.FINISHED, result });
+      this.sessions.update({ ...session, status: STATUS_FINISHED, result });
 
       this.scheduler.runScheduled(this.testRun).catch((error) => {
         this.kill(error);
       });
 
-      const sessionsForTestFile = this.manager.sessionsByTestFile.get(session.testFile)!;
       this.reporter.reportTestFileResults(
         this.testRun,
         session.testFile,
         this.browserNames,
         this.favoriteBrowser!,
-        sessionsForTestFile,
         this.serverAddress
       );
 
-      const finishedAll = this.manager.finishedSessions.size === this.manager.sessions.size;
+      const finishedAll = Array.from(this.sessions.all()).every(
+        (s) => s.status === STATUS_FINISHED
+      );
       if (finishedAll) {
         let passedCoverage = true;
         if (this.config.coverage) {
           const coverageThreshold =
             typeof this.config.coverage === 'object' ? this.config.coverage.threshold : undefined;
 
-          const cov = getCoverageSummary(this.manager.sessions, coverageThreshold);
+          const cov = getCoverageSummary(this.sessions.all(), coverageThreshold);
           passedCoverage = cov.passed;
 
           this.reporter.reportTestCoverage(cov.coverageData, passedCoverage, coverageThreshold);
@@ -243,9 +242,10 @@ export class TestRunner {
         if (!this.config.watch) {
           setTimeout(async () => {
             // TODO: Report these in watch mode too
-            this.reporter.reportSessionErrors(this.manager.failedSessions, this.serverAddress);
+            this.reporter.reportSessionErrors(this.serverAddress);
             await this.stop();
-            const failed = !passedCoverage || this.manager.failedSessions.size > 0;
+
+            const failed = !passedCoverage || Array.from(this.sessions.failed()).length > 0;
             process.exit(failed ? 1 : 0);
           });
         }
@@ -263,9 +263,7 @@ export class TestRunner {
         browserNames: this.browserNames,
         testRun: this.testRun,
         testFiles: this.testFiles,
-        sessionsByBrowser: this.manager.sessionsByBrowser,
-        scheduledSessions: this.manager.scheduledSessions,
-        runningSessions: this.manager.runningSessions,
+        sessions: this.sessions,
         startTime: this.startTime,
       });
     } catch (error) {
