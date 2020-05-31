@@ -44,20 +44,23 @@ logUncaughtErrors();
 
       function iterateTests(prefix: string, tests: Mocha.Test[]) {
         for (const test of tests) {
-          const name = `${prefix}${test.title}`;
-          const err = test.err as Error & { actual?: string; expected?: string };
-          testResults.push({
-            name,
-            passed: test.isPassed(),
-            error: err
-              ? {
-                  message: err.message,
-                  stack: err.stack,
-                  expected: err.expected,
-                  actual: err.actual,
-                }
-              : undefined,
-          });
+          // add test if it isn't pending (skipped)
+          if (!test.isPending()) {
+            const name = `${prefix}${test.title}`;
+            const err = test.err as Error & { actual?: string; expected?: string };
+            testResults.push({
+              name,
+              passed: test.isPassed(),
+              error: err
+                ? {
+                    message: err.message,
+                    stack: err.stack,
+                    expected: err.expected,
+                    actual: err.actual,
+                  }
+                : undefined,
+            });
+          }
         }
       }
 
