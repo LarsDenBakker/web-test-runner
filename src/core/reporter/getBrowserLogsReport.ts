@@ -1,5 +1,6 @@
 import { TerminalEntry } from './Terminal';
 import { TestSession } from '../TestSession';
+import chalk from 'chalk';
 
 export function getBrowserLogsReport(sessions: TestSession[]) {
   const entries: TerminalEntry[] = [];
@@ -29,16 +30,16 @@ export function getBrowserLogsReport(sessions: TestSession[]) {
   }
 
   if (commonLogs.length > 0) {
-    entries.push({ text: 'Browser logs:', indent: 2 });
+    entries.push({ text: `🚧 Browser logs:`, indent: 1 });
     for (const log of commonLogs) {
-      entries.push({ text: log, indent: 4 });
+      entries.push({ text: `${chalk.bold(chalk.gray('>'))} ${log}`, indent: 4 });
     }
   }
 
   for (const [browser, logs] of logsByBrowser) {
-    entries.push({ text: `${browser} logs:`, indent: 2 });
+    entries.push({ text: `🚧 Browser logs on ${browser}:`, indent: 1 });
     for (const log of logs) {
-      entries.push({ text: log, indent: 4 });
+      entries.push({ text: `${chalk.bold(chalk.gray('>'))} ${log}`, indent: 4 });
     }
   }
 

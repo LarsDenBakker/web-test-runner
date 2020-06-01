@@ -24,8 +24,8 @@ export function getFileErrorsReport(
     const failedBrowsers = sessionsThatFailedToImport.map((s) => s.browserName);
     const failedOn = createFailedOnBrowsers(allBrowserNames, failedBrowsers);
 
-    entries.push({ text: `Failed to load test file${failedOn}`, indent: 2 });
-    entries.push({ text: renderError(failedImport.error, serverAddress), indent: 4 });
+    entries.push({ text: `❌ Failed to run test file${failedOn}`, indent: 1 });
+    entries.push({ text: renderError(failedImport.error, serverAddress), indent: 6 });
   }
   const testErrorsPerBrowser = new Map<string, Map<string, TestResultError>>();
 
@@ -49,13 +49,10 @@ export function getFileErrorsReport(
         errorsForBrowser.get(favoriteBrowser) ?? errorsForBrowser.get(failedBrowsers[0])!;
       const failedOn = createFailedOnBrowsers(allBrowserNames, failedBrowsers);
 
-      entries.push({ text: `${name}${failedOn}`, indent: 2 });
-      entries.push({ text: renderError(favoriteError, serverAddress), indent: 4 });
+      entries.push({ text: `❌ ${name}${failedOn}`, indent: 1 });
+      entries.push({ text: renderError(favoriteError, serverAddress), indent: 6 });
+      entries.push('');
     }
-  }
-
-  if (entries.length > 0) {
-    entries.push('');
   }
 
   return entries;

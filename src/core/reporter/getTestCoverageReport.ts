@@ -27,7 +27,7 @@ export function getTestCoverageReport(
       totalsStrings.push(`${name}: ${chalk[passed ? 'green' : 'red'](`${pct} %`)}`);
     }
 
-    entries.push({ text: totalsStrings.join(', '), indent: 2 });
+    entries.push({ text: totalsStrings.join('\n'), indent: 2 });
   }
   return entries;
 }

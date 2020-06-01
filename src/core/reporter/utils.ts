@@ -63,19 +63,29 @@ export function getErrorLocation(err: TestResultError, serverAddress: string) {
 
 export function renderError(err: TestResultError, serverAddress: string): string {
   const errorLocation = getErrorLocation(err, serverAddress);
-  let errorString = errorLocation != null ? `at: ${chalk.underline(errorLocation)}\n` : '';
+  let errorString =
+    errorLocation != null ? `${chalk.gray('at:')} ${chalk.white(errorLocation)}\n` : '';
 
   if (typeof err.expected === 'string' && typeof err.actual === 'string') {
-    errorString += `error: ${chalk.red(err.message)}\n${renderDiff(err.actual, err.expected)}`;
+    errorString += `${chalk.gray('error:')} ${chalk.red(err.message)}\n${renderDiff(
+      err.actual,
+      err.expected
+    )}`;
   } else {
     errorString +=
-      errorLocation || !err.stack ? `error: ${chalk.red(err.message)}` : `${chalk.red(err.stack)}`;
+      errorLocation || !err.stack
+        ? `${chalk.gray('error:')} ${chalk.red(err.message)}`
+        : `${chalk.red(err.stack)}`;
   }
 
   return errorString;
 }
 
-export function createFailedOnBrowsers(allBrowserNames: string[], failedBrowsers: string[], includeFailed = true) {
+export function createFailedOnBrowsers(
+  allBrowserNames: string[],
+  failedBrowsers: string[],
+  includeFailed = true
+) {
   if (allBrowserNames.length === 1 || failedBrowsers.length === allBrowserNames.length) {
     return '';
   }

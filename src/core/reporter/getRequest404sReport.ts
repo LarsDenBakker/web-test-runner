@@ -1,5 +1,6 @@
 import { TerminalEntry } from './Terminal';
 import { TestSession } from '../TestSession';
+import chalk from 'chalk';
 
 export function getRequest404sReport(sessions: TestSession[]) {
   const entries: TerminalEntry[] = [];
@@ -29,16 +30,16 @@ export function getRequest404sReport(sessions: TestSession[]) {
   }
 
   if (common404s.length > 0) {
-    entries.push({ text: 'Request 404s:', indent: 2 });
+    entries.push({ text: '🚧 404 network requests:', indent: 1 });
     for (const request404 of common404s) {
-      entries.push({ text: request404, indent: 4 });
+      entries.push({ text: `${chalk.bold(chalk.gray('-'))} ${request404}`, indent: 4 });
     }
   }
 
   for (const [browser, request404s] of request404sPerBrowser) {
-    entries.push({ text: `${browser} request 404s:`, indent: 2 });
+    entries.push({ text: `🚧 404 network requests on ${browser}:`, indent: 2 });
     for (const request404 of request404s) {
-      entries.push({ text: request404, indent: 4 });
+      entries.push({ text: `${chalk.bold(chalk.gray('-'))} ${request404}`, indent: 4 });
     }
   }
 

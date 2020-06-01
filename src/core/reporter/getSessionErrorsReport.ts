@@ -23,16 +23,16 @@ export function getSessionErrorsReport(sessions: TestSession[], serverAddress: s
     const failedBrowserNames = sessionsWithError.map((s) => s.browserName);
 
     entries.push({
-      text: `Failed to run test file${createFailedOnBrowsers(
+      text: `❌ Failed to run test file${createFailedOnBrowsers(
         browserNames,
         failedBrowserNames,
         false
       )}:`,
-      indent: 2,
+      indent: 1,
     });
     entries.push({
       text: renderError(sessionsWithError[0].result!.error!, serverAddress),
-      indent: 2,
+      indent: 6,
     });
     entries.push('');
     return entries;
@@ -41,12 +41,12 @@ export function getSessionErrorsReport(sessions: TestSession[], serverAddress: s
   // only some browsers have an error, or each browser has a different error
   for (const session of sessionsWithError) {
     entries.push({
-      text: `Failed to run test file ${session.browserName}:`,
-      indent: 2,
+      text: `❌ Failed to run test file ${session.browserName}:`,
+      indent: 1,
     });
     entries.push({
       text: renderError(session.result!.error!, serverAddress),
-      indent: 2,
+      indent: 6,
     });
     entries.push('');
   }

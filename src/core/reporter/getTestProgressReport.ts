@@ -87,17 +87,6 @@ export function getTestProgressReport(config: TestRunnerConfig, args: TestProgre
     sessions.forStatus(STATUS_SCHEDULED, STATUS_INITIALIZING, STATUS_STARTED)
   );
 
-  if (testRun !== -1 && unfinishedSessions.length === 0) {
-    if (config.watch) {
-      entries.push(chalk.bold(`Finished running tests, watching for file changes...`));
-    } else {
-      entries.push(chalk.bold('Finished running tests!'));
-    }
-  } else {
-    entries.push(chalk.bold('Running tests...'));
-  }
-  entries.push('');
-
   const passedTests = new Set<string>();
   const failedTests = new Set<string>();
   const finishedFiles = new Set<string>();
@@ -153,16 +142,35 @@ export function getTestProgressReport(config: TestRunnerConfig, args: TestProgre
         failedTests.size
       )
     );
-    entries.push(...browserProgressEntries.map((text) => ({ text: text, indent: 2 })));
+    entries.push('');
+    entries.push(...browserProgressEntries.map((text) => text));
   } else {
     entries.push(...browserProgressEntries);
   }
 
+  const durationInSec = (Date.now() - startTime) / 1000;
+
   entries.push('');
-  if (!config.watch) {
-    const durationInSec = (Date.now() - startTime) / 1000;
-    entries.push(`Duration: ${Math.trunc(durationInSec * 10) / 10}s`);
-    entries.push('');
+  if (testRun !== -1 && unfinishedSessions.length === 0) {
+    if (config.watch) {
+      entries.push(chalk.bold(`Finished running tests, watching for file changes...`));
+    } else {
+      const duration = Math.trunc(durationInSec * 10) / 10;
+
+      if (failedTests.size > 0) {
+        entries.push(
+          chalk.bold(
+            `Finished running tests in ${duration}s with ${failedTests.size} tests failed.`
+          )
+        );
+      } else {
+        entries.push(chalk.bold(`Finished running tests in ${duration}s, all tests passed! 🎉`));
+      }
+    }
+  } else {
+    entries.push(
+      chalk.bold(`Running tests... ${config.watch ? '' : `(${Math.floor(durationInSec)}s)`}`)
+    );
   }
 
   return entries;

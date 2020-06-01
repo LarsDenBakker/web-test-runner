@@ -16,6 +16,10 @@ export function getTestFileReport(
   const failedSessions = sessionsForTestFile.filter((s) => !s.result!.passed);
   const entries: TerminalEntry[] = [];
 
+  entries.push(...getBrowserLogsReport(sessionsForTestFile));
+  entries.push(...getRequest404sReport(sessionsForTestFile));
+  entries.push(...getSessionErrorsReport(sessionsForTestFile, serverAddress));
+
   if (failedSessions.length > 0) {
     entries.push(
       ...getFileErrorsReport(
@@ -28,12 +32,9 @@ export function getTestFileReport(
     );
   }
 
-  entries.push(...getSessionErrorsReport(sessionsForTestFile, serverAddress));
-  entries.push(...getBrowserLogsReport(sessionsForTestFile));
-  entries.push(...getRequest404sReport(sessionsForTestFile));
-
   if (entries.length > 0) {
-    entries.unshift(`${chalk.underline(testFile)}:`);
+    entries.unshift('');
+    entries.unshift(`${chalk.bold(chalk.cyanBright(testFile))}:`);
   }
 
   // trim off a trailing empty line used for padding between errors
