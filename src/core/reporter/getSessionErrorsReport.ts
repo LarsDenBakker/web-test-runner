@@ -1,25 +1,54 @@
-import chalk from 'chalk';
-import { renderError } from './getFileErrorsReport';
 import { TerminalEntry } from './Terminal';
 import { TestSession } from '../TestSession';
+import { TestResultError } from '../TestSessionResult';
+import { renderError, createFailedOnBrowsers } from './utils';
 
-export function getSessionErrorsReport(
-  failedSessions: Iterable<TestSession>,
-  serverAddress: string
-) {
+function isSameError(a: TestResultError, b: TestResultError) {
+  return a.message === b.message && a.stack === b.stack;
+}
+
+export function getSessionErrorsReport(sessions: TestSession[], serverAddress: string) {
   const entries: TerminalEntry[] = [];
-
-  for (const session of failedSessions) {
-    if (session.result!.error) {
-      entries.push(`${chalk.underline(session.testFile)}:`);
-      entries.push({ text: `Error on ${session.browserName}:`, indent: 2 });
-      entries.push({ text: renderError(session.result!.error, serverAddress), indent: 4 });
-    }
+  const sessionsWithError = sessions.filter((s) => !!s.result?.error);
+  if (sessionsWithError.length === 0) {
+    return entries;
   }
 
-  if (entries.length > 0) {
+  const allSameError = sessionsWithError.every((e) =>
+    isSameError(e.result!.error!, sessionsWithError[0].result!.error!)
+  );
+
+  if (allSameError) {
+    const browserNames = sessions.map((s) => s.browserName);
+    const failedBrowserNames = sessionsWithError.map((s) => s.browserName);
+
+    entries.push({
+      text: `Failed to run test file${createFailedOnBrowsers(
+        browserNames,
+        failedBrowserNames,
+        false
+      )}:`,
+      indent: 2,
+    });
+    entries.push({
+      text: renderError(sessionsWithError[0].result!.error!, serverAddress),
+      indent: 2,
+    });
+    entries.push('');
+    return entries;
+  }
+
+  // only some browsers have an error, or each browser has a different error
+  for (const session of sessionsWithError) {
+    entries.push({
+      text: `Failed to run test file ${session.browserName}:`,
+      indent: 2,
+    });
+    entries.push({
+      text: renderError(session.result!.error!, serverAddress),
+      indent: 2,
+    });
     entries.push('');
   }
-
   return entries;
 }

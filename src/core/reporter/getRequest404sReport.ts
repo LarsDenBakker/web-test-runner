@@ -1,7 +1,7 @@
 import { TerminalEntry } from './Terminal';
 import { TestSession } from '../TestSession';
 
-export function getRequest404sReport(testFile: string, sessions: TestSession[]) {
+export function getRequest404sReport(sessions: TestSession[]) {
   const entries: TerminalEntry[] = [];
   const common404s: string[] = [];
   const request404sPerBrowser = new Map<string, string[]>();
@@ -40,6 +40,10 @@ export function getRequest404sReport(testFile: string, sessions: TestSession[]) 
     for (const request404 of request404s) {
       entries.push({ text: request404, indent: 4 });
     }
+  }
+
+  if (entries.length > 0) {
+    entries.push('');
   }
 
   return entries;

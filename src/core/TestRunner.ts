@@ -241,8 +241,6 @@ export class TestRunner {
 
         if (!this.config.watch) {
           setTimeout(async () => {
-            // TODO: Report these in watch mode too
-            this.reporter.reportSessionErrors(this.serverAddress);
             await this.stop();
 
             const failed = !passedCoverage || Array.from(this.sessions.failed()).length > 0;

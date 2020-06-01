@@ -1,7 +1,7 @@
 import { TerminalEntry } from './Terminal';
 import { TestSession } from '../TestSession';
 
-export function getBrowserLogsReport(testFile: string, sessions: TestSession[]) {
+export function getBrowserLogsReport(sessions: TestSession[]) {
   const entries: TerminalEntry[] = [];
   const commonLogs: string[] = [];
   const logsByBrowser = new Map<string, string[]>();
@@ -40,6 +40,10 @@ export function getBrowserLogsReport(testFile: string, sessions: TestSession[]) 
     for (const log of logs) {
       entries.push({ text: log, indent: 4 });
     }
+  }
+
+  if (entries.length > 0) {
+    entries.push('');
   }
 
   return entries;

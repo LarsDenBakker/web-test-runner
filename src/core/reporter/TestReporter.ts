@@ -78,11 +78,6 @@ export class TestReporter {
     }
   }
 
-  reportSessionErrors(serverAddress: string) {
-    const sessionErrorsReport = getSessionErrorsReport(this.sessions.failed(), serverAddress);
-    this.terminal.logStatic(sessionErrorsReport);
-  }
-
   reportTestProgress(config: TestRunnerConfig, args: TestProgressArgs) {
     const dynamicEntries = getTestProgressReport(config, args);
     dynamicEntries.push(`\nPress D to debug in the browser.`);
