@@ -93,7 +93,7 @@ export class TestRunner extends EventEmitter<EventMap> {
     if (this.stopped) {
       return;
     }
-    // TODO: cancel previous test run
+
     if (this.browsers.length > 1) {
       // TODO: only pass sessions to browsers associated with it
       throw new Error('Multiple browsers are not yet supported');
