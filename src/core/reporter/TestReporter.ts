@@ -80,7 +80,9 @@ export class TestReporter {
 
   reportTestProgress(config: TestRunnerConfig, args: TestProgressArgs) {
     const dynamicEntries = getTestProgressReport(config, args);
-    dynamicEntries.push(`\nPress D to debug in the browser.`);
+    if (config.watch) {
+      dynamicEntries.push(`\nPress D to debug in the browser.`);
+    }
     this.terminal.logDynamic(dynamicEntries);
   }
 
