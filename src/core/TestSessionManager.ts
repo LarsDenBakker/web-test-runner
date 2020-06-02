@@ -1,12 +1,40 @@
 import { TestSession } from './TestSession';
-import { filtered } from './utils';
+import { EventEmitter, filtered } from './utils';
 import { TestSessionStatus } from './TestSessionStatus';
+import { TestSessionResult } from './TestSessionResult';
 
-export class TestSessionManager {
+interface EventMap {
+  'session-status-updated': TestSession;
+  'session-updated': void;
+}
+
+export class TestSessionManager extends EventEmitter<EventMap> {
   private sessionsMap = new Map<string, TestSession>();
 
   add(session: TestSession) {
     this.sessionsMap.set(session.id, session);
+  }
+
+  updateStatus(
+    session: TestSession,
+    status: TestSessionStatus,
+    result: Partial<TestSessionResult> = {}
+  ) {
+    const updatedSession: TestSession = {
+      ...session,
+      status,
+      result: {
+        passed: false,
+        logs: [],
+        tests: [],
+        failedImports: [],
+        request404s: new Set(),
+        error: undefined,
+        ...result,
+      },
+    };
+    this.update(updatedSession);
+    this.emit('session-status-updated', updatedSession);
   }
 
   update(session: TestSession) {
@@ -14,6 +42,7 @@ export class TestSessionManager {
       throw new Error(`Unknown session: ${session.id}`);
     }
     this.sessionsMap.set(session.id, session);
+    this.emit('session-updated', undefined);
   }
 
   get(id: string) {

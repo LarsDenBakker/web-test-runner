@@ -9,6 +9,7 @@ import {
   STATUS_STARTED,
   STATUS_FINISHED,
 } from './TestSessionStatus';
+import { TestResultError } from './TestSessionResult';
 
 export class TestScheduler extends EventEmitter {
   constructor(
@@ -21,7 +22,7 @@ export class TestScheduler extends EventEmitter {
 
   async schedule(testRun: number, sessionsToSchedule: Iterable<TestSession>) {
     for (const session of sessionsToSchedule) {
-      this.sessions.update({ ...session, status: STATUS_SCHEDULED });
+      this.sessions.updateStatus(session, STATUS_SCHEDULED);
     }
 
     return this.runScheduled(testRun);
@@ -45,60 +46,73 @@ export class TestScheduler extends EventEmitter {
     return Promise.all(scheduleTasks);
   }
 
-  private runSession(testRun: number, session: TestSession) {
+  private async runSession(testRun: number, session: TestSession) {
     this.sessions.update({ ...session, testRun, status: STATUS_INITIALIZING });
+    let browserStartResponded = false;
 
+    // browser should be started within the specified milliseconds
     setTimeout(() => {
-      const upToDateSession = this.sessions.get(session.id)!;
-      if (upToDateSession.testRun !== testRun) {
+      if (!browserStartResponded) {
+        this.setSessionFailed(this.sessions.get(session.id)!, {
+          message: `Browser did not start after ${this.config.browserStartTimeout}ms.`,
+        });
+      }
+    }, this.config.browserStartTimeout);
+
+    try {
+      // TODO: Select associated browser
+      await this.browsers[0]!.startSession(session);
+
+      // when the browser started, wait for session to ping back on time
+      this.setSessionStartedTimeout(testRun, session.id);
+    } catch (error) {
+      this.setSessionFailed(session, error);
+    } finally {
+      browserStartResponded = true;
+    }
+  }
+
+  private setSessionFailed(session: TestSession, error: TestResultError) {
+    this.sessions.updateStatus(session, STATUS_FINISHED, { passed: false, error });
+  }
+
+  private setSessionStartedTimeout(testRun: number, sessionId: string) {
+    setTimeout(() => {
+      const session = this.sessions.get(sessionId)!;
+      if (session.testRun !== testRun) {
         // session reloaded in the meantime
         return;
       }
 
-      if (upToDateSession.status === STATUS_INITIALIZING) {
-        this.setSessionTimedout(
-          upToDateSession,
-          `Did not receive a start signal from browser after ${this.config.sessionStartTimeout}ms.`
-        );
+      if (session.status === STATUS_INITIALIZING) {
+        this.setSessionFailed(session, {
+          message: `Did not receive a start signal from browser after ${this.config.sessionStartTimeout}ms.`,
+        });
         return;
       }
 
-      if (upToDateSession.status === STATUS_FINISHED) {
+      if (session.status === STATUS_FINISHED) {
         // The session finished by now
         return;
       }
 
-      setTimeout(() => {
-        const upToDateSession = this.sessions.get(session.id)!;
-        if (upToDateSession.testRun !== testRun) {
-          // session reloaded in the meantime
-          return;
-        }
-
-        if (upToDateSession.status !== STATUS_FINISHED) {
-          this.setSessionTimedout(
-            upToDateSession,
-            `Browser did not finish within ${this.config.sessionStartTimeout}ms.`
-          );
-        }
-      }, this.config.sessionFinishTimeout!);
-    }, this.config.sessionStartTimeout!);
-
-    // TODO: Select associated browser
-    return this.browsers[0]!.startSession(session);
+      this.setSessionFinishedTimeout(testRun, session.id);
+    }, this.config.sessionStartTimeout);
   }
 
-  private setSessionTimedout(session: TestSession, message: string) {
-    this.emit('session-timed-out', {
-      id: session.id,
-      result: {
-        passed: false,
-        logs: [],
-        tests: [],
-        failedImports: [],
-        request404s: new Set(),
-        error: { message },
-      },
-    });
+  private setSessionFinishedTimeout(testRun: number, sessionId: string) {
+    setTimeout(() => {
+      const session = this.sessions.get(sessionId)!;
+      if (session.testRun !== testRun) {
+        // session reloaded in the meantime
+        return;
+      }
+
+      if (session.status !== STATUS_FINISHED) {
+        this.setSessionFailed(session, {
+          message: `Browser did not finish within ${this.config.sessionStartTimeout}ms.`,
+        });
+      }
+    }, this.config.sessionFinishTimeout!);
   }
 }

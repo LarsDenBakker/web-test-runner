@@ -60,8 +60,9 @@ const defaultCoverageConfig: CoverageConfig = {
     address: 'http://localhost',
     port: 9542,
     concurrency: 10,
+    browserStartTimeout: 30000,
     sessionStartTimeout: 10000,
-    sessionFinishTimeout: 10000,
+    sessionFinishTimeout: 20000,
     browsers: puppeteerLauncher(),
     server: createEsDevServer(),
 

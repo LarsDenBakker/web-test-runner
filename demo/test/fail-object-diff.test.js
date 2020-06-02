@@ -10,6 +10,6 @@ it('object diff B', () => {
 });
 
 it('object diff C', () => {
-  expect({ a: '1',Ï b: '2', c: '3' }).to.equal({ a: '1', b: '5', c: '3', c: 'ewrwekropw' });
+  expect({ a: '1', b: '2', c: '3' }).to.equal({ a: '1', b: '5', c: '3', c: 'ewrwekropw' });
 });
 

@@ -25,6 +25,7 @@ export interface TestRunnerConfig {
   watch?: boolean;
   coverage?: boolean | CoverageConfig;
   concurrency?: number;
+  browserStartTimeout?: number;
   sessionStartTimeout?: number;
   sessionFinishTimeout?: number;
 }

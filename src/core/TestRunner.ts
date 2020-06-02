@@ -2,7 +2,6 @@ import { TestSession } from './TestSession';
 import { TestRunnerConfig } from './TestRunnerConfig';
 import { createTestSessions } from './utils';
 import { BrowserLauncher } from './BrowserLauncher';
-import { TestSessionResult } from './TestSessionResult';
 import { TestReporter } from './reporter/TestReporter';
 import { getCoverageSummary } from './getCoverageSummary';
 import { TestScheduler } from './TestSessionScheduler';
@@ -33,8 +32,18 @@ export class TestRunner {
     this.browsers = Array.isArray(config.browsers) ? config.browsers : [config.browsers];
     this.serverAddress = `${config.address}:${config.port}/`;
     this.scheduler = new TestScheduler(config, this.browsers, this.sessions);
-    this.scheduler.on('session-timed-out', ({ id, result }) => {
-      this.onSessionFinished(id, result);
+
+    this.sessions.on('session-status-updated', (session) => {
+      switch (session.status) {
+        case STATUS_STARTED:
+          this.updateTestProgress();
+          break;
+        case STATUS_FINISHED:
+          this.onSessionFinished(session);
+          break;
+        default:
+          break;
+      }
     });
 
     this.terminal.on('kill', () => {
@@ -89,8 +98,6 @@ export class TestRunner {
         config: this.config,
         sessions: this.sessions,
         testFiles: this.testFiles,
-        onSessionStarted: this.onSessionStarted,
-        onSessionFinished: this.onSessionFinished,
         onRerunSessions: this.onRerunSessions,
       });
 
@@ -169,20 +176,6 @@ export class TestRunner {
     process.exit(1);
   }
 
-  private onSessionStarted = async (sessionId: string) => {
-    try {
-      const session = this.sessions.get(sessionId);
-      if (!session) {
-        throw new Error(`Unknown session ${sessionId}`);
-      }
-
-      this.sessions.update({ ...session, status: STATUS_STARTED });
-      this.updateTestProgress();
-    } catch (error) {
-      this.kill(error);
-    }
-  };
-
   private onRerunSessions = (sessionIds: string[]) => {
     try {
       const sessions = sessionIds.map((id) => {
@@ -199,18 +192,12 @@ export class TestRunner {
     }
   };
 
-  private onSessionFinished = async (sessionId: string, result: TestSessionResult) => {
+  private async onSessionFinished(session: TestSession) {
     try {
-      const session = this.sessions.get(sessionId);
-      if (!session) {
-        throw new Error(`Unknown session ${sessionId}`);
-      }
-
       // TODO: find correct browser for session
       for (const browser of this.browsers) {
         browser.stopSession(session);
       }
-      this.sessions.update({ ...session, status: STATUS_FINISHED, result });
 
       this.scheduler.runScheduled(this.testRun).catch((error) => {
         this.kill(error);
@@ -253,7 +240,7 @@ export class TestRunner {
     } catch (error) {
       this.kill(error);
     }
-  };
+  }
 
   private updateTestProgress() {
     try {

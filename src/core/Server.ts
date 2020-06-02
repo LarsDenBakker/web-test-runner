@@ -6,8 +6,6 @@ export interface ServerStartArgs {
   config: TestRunnerConfig;
   sessions: TestSessionManager;
   testFiles: string[];
-  onSessionStarted: (id: string) => void;
-  onSessionFinished: (id: string, result: TestSessionResult) => void;
   onRerunSessions: (sessionIds: string[]) => void;
 }
 

@@ -9,19 +9,13 @@ import { RuntimeConfig, BrowserTestSessionResult } from '../../core/runtime/type
 import { dependencyGraphMiddleware } from './dependencyGraphMiddleware';
 import { createTestPage } from './createTestPage';
 import { createDebugPage } from './createDebugPage';
+import { STATUS_FINISHED, STATUS_STARTED } from '../../core/TestSessionStatus';
 
 export function createEsDevServer(devServerConfig: object = {}): Server {
   let server: net.Server;
 
   return {
-    async start({
-      config,
-      testFiles,
-      sessions,
-      onSessionStarted,
-      onSessionFinished,
-      onRerunSessions: originalOnRerunSessions,
-    }) {
+    async start({ config, testFiles, sessions, onRerunSessions: originalOnRerunSessions }) {
       const request404sPerSession = new Map<string, Set<string>>();
       const testFrameworkImport = process.env.LOCAL_TESTING
         ? config.testFrameworkImport.replace('web-test-runner', '.')
@@ -94,14 +88,14 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                   // TODO: Handle race conditions for these requests
                   if (command === 'session-started') {
                     ctx.status = 200;
-                    onSessionStarted(sessionId);
+                    sessions.updateStatus(session, STATUS_STARTED);
                     return;
                   }
 
                   if (command === 'session-finished') {
                     ctx.status = 200;
                     const result = (await parse.json(ctx)) as BrowserTestSessionResult;
-                    onSessionFinished(sessionId, {
+                    sessions.updateStatus(session, STATUS_FINISHED, {
                       ...result,
                       request404s: request404sPerSession.get(sessionId) ?? new Set(),
                     });
