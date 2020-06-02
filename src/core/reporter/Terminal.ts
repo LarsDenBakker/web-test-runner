@@ -1,5 +1,5 @@
-import { EventEmitter } from 'events';
 import logUpdate from 'log-update';
+import { EventEmitter } from '../utils';
 
 const CLEAR_COMMAND = process.platform === 'win32' ? '\x1B[2J\x1B[0f' : '\x1B[2J\x1B[3J\x1B[H';
 
@@ -11,9 +11,20 @@ export interface IndentedTerminalEntry {
 }
 
 const KEYCODES = {
+  ENTER: '\r',
+  ESCAPE: '\u001b',
   CTRL_C: '\u0003',
   CTRL_D: '\u0004',
 };
+
+interface EventMap {
+  quit: undefined;
+  debug: undefined;
+  'enter-focus': undefined;
+  'exit-focus': undefined;
+  'rerun-all': undefined;
+  'focus-file': number;
+}
 
 function buildLogString(entries: TerminalEntry[], serverAddress: RegExp) {
   let str = '';
@@ -38,7 +49,7 @@ function buildLogString(entries: TerminalEntry[], serverAddress: RegExp) {
   return str;
 }
 
-export class Terminal extends EventEmitter {
+export class Terminal extends EventEmitter<EventMap> {
   private originalFunctions: Partial<Record<keyof Console, Function>> = {};
   private previousDynamic: TerminalEntry[] = [];
   private started = false;
@@ -80,15 +91,33 @@ export class Terminal extends EventEmitter {
       process.stdin.resume();
       process.stdin.setEncoding('utf8');
       process.stdin.on('data', (key: string) => {
-        if (key === KEYCODES.CTRL_C || key === KEYCODES.CTRL_D) {
-          process.stdin.setRawMode(false);
-          this.emit('kill');
+        const nr = Number(key);
+        if (!Number.isNaN(nr)) {
+          this.emit('focus-file', nr);
           return;
         }
 
-        if (key.toUpperCase() === 'D') {
-          this.emit('debug');
-          return;
+        switch (key.toUpperCase()) {
+          case KEYCODES.CTRL_C:
+          case KEYCODES.CTRL_D:
+          case 'Q':
+            process.stdin.setRawMode(false);
+            this.emit('quit', undefined);
+            return;
+          case 'D':
+            this.emit('debug', undefined);
+            return;
+          case 'F':
+            this.emit('enter-focus', undefined);
+            return;
+          case KEYCODES.ESCAPE:
+            this.emit('exit-focus', undefined);
+            return;
+          case KEYCODES.ENTER:
+            this.emit('rerun-all', undefined);
+            return;
+          default:
+            return;
         }
       });
     }
@@ -105,9 +134,13 @@ export class Terminal extends EventEmitter {
     this.started = false;
   }
 
-  restart() {
+  clear() {
     process.stdout.write(CLEAR_COMMAND);
+  }
+
+  restart() {
     this.relogDynamic();
+    this.clear();
   }
 
   logStatic(entriesOrEntry: TerminalEntry | TerminalEntry[]) {

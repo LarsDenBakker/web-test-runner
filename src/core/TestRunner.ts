@@ -25,6 +25,8 @@ export class TestRunner {
   private started = false;
   private stopped = false;
   private testRun = -1;
+  private focusMode = false;
+  private focusedTestFile?: string;
 
   constructor(config: TestRunnerConfig, testFiles: string[]) {
     this.config = config;
@@ -46,8 +48,37 @@ export class TestRunner {
       }
     });
 
-    this.terminal.on('kill', () => {
+    this.terminal.on('enter-focus', () => {
+      if (!this.focusedTestFile) {
+        this.focusMode = true;
+        this.updateTestProgress();
+      }
+    });
+
+    this.terminal.on('exit-focus', () => {
+      if (this.focusMode && this.focusedTestFile) {
+        this.focusMode = false;
+        this.focusedTestFile = undefined;
+        this.updateTestProgress();
+      }
+    });
+
+    this.terminal.on('focus-file', (fileNumber) => {
+      if (this.focusMode && !this.focusedTestFile) {
+        if (fileNumber - 1 < this.testFiles.length) {
+          this.focusedTestFile = this.testFiles[fileNumber - 1];
+          this.updateTestProgress();
+          this.runTests(this.sessions.forTestFile(this.focusedTestFile));
+        }
+      }
+    });
+
+    this.terminal.on('quit', () => {
       this.kill();
+    });
+
+    this.terminal.on('rerun-all', () => {
+      this.runTests(this.sessions.all());
     });
 
     this.terminal.on('debug', () => {
@@ -116,7 +147,7 @@ export class TestRunner {
     if (this.stopped) {
       return;
     }
-    // TODO: cancel previous test run
+
     if (this.browsers.length > 1) {
       // TODO: only pass sessions to browsers associated with it
       throw new Error('Multiple browsers are not yet supported');
@@ -131,7 +162,8 @@ export class TestRunner {
         this.testFiles,
         this.browserNames,
         this.favoriteBrowser!,
-        this.serverAddress
+        this.serverAddress,
+        this.focusMode
       );
     } catch (error) {
       this.kill(error);
@@ -223,7 +255,7 @@ export class TestRunner {
           const cov = getCoverageSummary(this.sessions.all(), coverageThreshold);
           passedCoverage = cov.passed;
 
-          this.reporter.reportTestCoverage(cov.coverageData, passedCoverage, coverageThreshold);
+          this.reporter.reportTestCoverage(cov.coverageData, passedCoverage, coverageThreshold, this.focusMode);
         }
 
         if (!this.config.watch) {
@@ -244,13 +276,18 @@ export class TestRunner {
 
   private updateTestProgress() {
     try {
-      this.reporter.reportTestProgress(this.config, {
-        browserNames: this.browserNames,
-        testRun: this.testRun,
-        testFiles: this.testFiles,
-        sessions: this.sessions,
-        startTime: this.startTime,
-      });
+      this.reporter.reportTestProgress(
+        this.config,
+        {
+          browserNames: this.browserNames,
+          testRun: this.testRun,
+          testFiles: this.testFiles,
+          sessions: this.sessions,
+          startTime: this.startTime,
+        },
+        this.focusMode,
+        this.focusedTestFile
+      );
     } catch (error) {
       this.kill(error);
     }

@@ -1,12 +1,13 @@
 import { CoverageSummaryData } from 'istanbul-lib-coverage';
 import { TestRunnerConfig, CoverageThresholdConfig } from '../TestRunnerConfig';
 import { TestProgressArgs, getTestProgressReport } from './getTestProgressReport';
-import { getSessionErrorsReport } from './getSessionErrorsReport';
 import { Terminal } from './Terminal';
 import { getTestFileReport } from './getTestFileReport';
 import { getTestCoverageReport } from './getTestCoverageReport';
 import { TestSessionManager } from '../TestSessionManager';
 import { STATUS_FINISHED } from '../TestSessionStatus';
+import { getWatchCommands } from './getWatchCommands';
+import { getSelectFilesMenu } from './getSelectFilesMenu';
 
 export class TestReporter {
   private reportedFilesByTestRun = new Map<number, Set<string>>();
@@ -18,31 +19,39 @@ export class TestReporter {
     testFiles: string[],
     allBrowserNames: string[],
     favoriteBrowser: string,
-    serverAddress: string
+    serverAddress: string,
+    focusMode?: boolean
   ) {
     if (testRun !== 0) {
       // Restart terminal
       this.terminal.restart();
     }
 
-    // Log results of test files that are not being re-run
-    for (const testFile of testFiles) {
-      this.reportTestFileResults(
-        testRun,
-        testFile,
-        allBrowserNames,
-        favoriteBrowser,
-        serverAddress
-      );
+    if (!focusMode) {
+      // Log results of test files that are not being re-run
+      for (const testFile of testFiles) {
+        this.reportTestFileResults(
+          testRun,
+          testFile,
+          allBrowserNames,
+          favoriteBrowser,
+          serverAddress
+        );
+      }
     }
   }
 
   reportTestCoverage(
     coverageData: CoverageSummaryData,
     passedCoverage: boolean,
-    coverageThreshold?: CoverageThresholdConfig
+    coverageThreshold?: CoverageThresholdConfig,
+    focusMode?: boolean
   ) {
-    this.terminal.logStatic(getTestCoverageReport(coverageData, passedCoverage, coverageThreshold));
+    if (!focusMode) {
+      this.terminal.logStatic(
+        getTestCoverageReport(coverageData, passedCoverage, coverageThreshold)
+      );
+    }
   }
 
   reportTestFileResults(
@@ -78,12 +87,23 @@ export class TestReporter {
     }
   }
 
-  reportTestProgress(config: TestRunnerConfig, args: TestProgressArgs) {
-    const dynamicEntries = getTestProgressReport(config, args);
+  reportTestProgress(
+    config: TestRunnerConfig,
+    args: TestProgressArgs,
+    focusMode: boolean,
+    focusedTest?: string
+  ) {
+    const entries = !focusMode ? getTestProgressReport(config, args) : [];
+
     if (config.watch) {
-      dynamicEntries.push(`\nPress D to debug in the browser.`);
+      if (focusMode && !focusedTest) {
+        this.terminal.clear();
+        this.terminal.logStatic(getSelectFilesMenu(args.testFiles));
+      }
+      entries.push('', ...getWatchCommands(focusMode, focusedTest));
     }
-    this.terminal.logDynamic(dynamicEntries);
+
+    this.terminal.logDynamic(entries);
   }
 
   reportEnd() {
