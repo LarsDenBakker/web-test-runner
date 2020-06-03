@@ -9,10 +9,15 @@ export const coverageTypes: (keyof CoverageSummaryData)[] = [
   'functions',
 ];
 
-export function getCoverageSummary(
+export interface TestCoverage {
+  passed: boolean;
+  summary: CoverageSummaryData;
+}
+
+export function getTestCoverage(
   sessions: Iterable<TestSession>,
   coverageThreshold?: CoverageThresholdConfig
-): { coverageData: CoverageSummaryData; passed: boolean } {
+): TestCoverage {
   const coverageMap = createCoverageMap();
 
   for (const session of sessions) {
@@ -21,15 +26,15 @@ export function getCoverageSummary(
     }
   }
 
-  const coverageData = coverageMap.getCoverageSummary().data;
+  const summary = coverageMap.getCoverageSummary().data;
 
   if (coverageThreshold) {
     for (const type of coverageTypes) {
-      const { pct } = coverageData[type];
+      const { pct } = summary[type];
       if (pct < coverageThreshold[type]) {
-        return { coverageData, passed: false };
+        return { summary, passed: false };
       }
     }
   }
-  return { coverageData, passed: true };
+  return { summary, passed: true };
 }

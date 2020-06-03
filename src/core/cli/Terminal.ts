@@ -82,7 +82,7 @@ export class Terminal extends EventEmitter {
       process.stdin.on('data', (key: string) => {
         if (key === KEYCODES.CTRL_C || key === KEYCODES.CTRL_D) {
           process.stdin.setRawMode(false);
-          this.emit('kill');
+          this.emit('quit');
           return;
         }
 

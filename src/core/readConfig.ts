@@ -1,8 +1,6 @@
-#!/usr/bin/env node
 import commandLineArgs from 'command-line-args';
 import fs from 'fs';
 import path from 'path';
-import { runTests } from './runTests';
 import { puppeteerLauncher } from '../implementations/browser-launchers/puppeteer-launcher';
 import { createEsDevServer } from '../implementations/servers/es-dev-server';
 import { TestRunnerConfig, CoverageConfig } from './TestRunnerConfig';
@@ -40,7 +38,7 @@ const defaultCoverageConfig: CoverageConfig = {
   exclude: ['**/node_modules/**/*'],
 };
 
-(async () => {
+export async function readConfig() {
   const args = commandLineArgs(commandLineOptions);
   let userConfig = {};
   const configPath = path.resolve(args.config || './web-test-runner.config.js');
@@ -86,5 +84,5 @@ const defaultCoverageConfig: CoverageConfig = {
     throw new Error('You need to specify which tests to run.');
   }
 
-  runTests(config);
-})();
+  return config;
+}

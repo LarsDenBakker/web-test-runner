@@ -1,6 +1,10 @@
+#!/usr/bin/env node
+import commandLineArgs from 'command-line-args';
+import fs from 'fs';
 import globby from 'globby';
-import { TestRunnerConfig } from './TestRunnerConfig';
 import { TestRunner } from './TestRunner';
+import { TestRunnerCli } from './cli/TestRunnerCli';
+import { readConfig } from './readConfig';
 
 const dedupeArray = (arr: string[]): string[] => [...new Set(arr)];
 
@@ -12,17 +16,20 @@ async function collectTestFiles(patterns: string | string[]) {
   return dedupeArray(testFiles).map((f) => f);
 }
 
-export async function runTests(config: TestRunnerConfig) {
+(async () => {
+  const config = await readConfig();
+
   const testFiles = await collectTestFiles(config.files);
   if (testFiles.length === 0) {
     console.error(`Could not find any files with pattern(s): ${config.files}`);
     process.exit(1);
   }
 
-  const testRunner = new TestRunner(config, testFiles);
+  const runner = new TestRunner(config, testFiles);
+  const cli = new TestRunnerCli(config, runner);
 
   function stop() {
-    testRunner.stop();
+    runner.stop();
   }
 
   (['exit', 'SIGINT'] as NodeJS.Signals[]).forEach((event) => {
@@ -35,5 +42,6 @@ export async function runTests(config: TestRunnerConfig) {
     stop();
   });
 
-  testRunner.start();
-}
+  await runner.start();
+  await cli.start();
+})();

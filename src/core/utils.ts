@@ -54,7 +54,7 @@ export class EventEmitter<T extends EventMap> implements Emitter<T> {
     this.__emitter.off(eventName, fn);
   }
 
-  emit<K extends EventKey<T>>(eventName: K, params: T[K]) {
+  emit<K extends EventKey<T>>(eventName: K, params?: T[K]) {
     this.__emitter.emit(eventName, params);
   }
 }

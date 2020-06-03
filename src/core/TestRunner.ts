@@ -1,58 +1,42 @@
 import { TestSession } from './TestSession';
 import { TestRunnerConfig } from './TestRunnerConfig';
-import { createTestSessions } from './utils';
+import { createTestSessions, EventEmitter } from './utils';
 import { BrowserLauncher } from './BrowserLauncher';
-import { TestReporter } from './reporter/TestReporter';
-import { getCoverageSummary } from './getCoverageSummary';
+import { getTestCoverage, TestCoverage } from './getTestCoverage';
 import { TestScheduler } from './TestSessionScheduler';
-import { Terminal } from './reporter/Terminal';
 import { TestSessionManager } from './TestSessionManager';
 import { STATUS_STARTED, STATUS_FINISHED } from './TestSessionStatus';
 
-export class TestRunner {
-  private config: TestRunnerConfig;
+interface EventMap {
+  'test-run-started': { testRun: number; sessions: Iterable<TestSession> };
+  'test-run-finished': { testRun: number; testCoverage?: TestCoverage };
+  quit: undefined;
+}
+
+export class TestRunner extends EventEmitter<EventMap> {
+  public config: TestRunnerConfig;
+  public sessions = new TestSessionManager();
+  public browserNames: string[] = [];
+  public testFiles: string[];
+  public favoriteBrowser = '';
+  public startTime = -1;
+  public testRun = -1;
+  public started = false;
+  public stopped = false;
+
   private browsers: BrowserLauncher[];
-  private browserNames: string[] = [];
-  private testFiles: string[];
-  private favoriteBrowser?: string;
-  private serverAddress: string;
-  private terminal = new Terminal();
-  private sessions = new TestSessionManager();
-  private reporter = new TestReporter(this.terminal, this.sessions);
   private scheduler: TestScheduler;
-  private startTime = -1;
-  private updateTestProgressIntervalId?: NodeJS.Timer;
-  private started = false;
-  private stopped = false;
-  private testRun = -1;
 
   constructor(config: TestRunnerConfig, testFiles: string[]) {
+    super();
     this.config = config;
     this.testFiles = testFiles;
     this.browsers = Array.isArray(config.browsers) ? config.browsers : [config.browsers];
-    this.serverAddress = `${config.address}:${config.port}/`;
     this.scheduler = new TestScheduler(config, this.browsers, this.sessions);
 
     this.sessions.on('session-status-updated', (session) => {
-      switch (session.status) {
-        case STATUS_STARTED:
-          this.updateTestProgress();
-          break;
-        case STATUS_FINISHED:
-          this.onSessionFinished(session);
-          break;
-        default:
-          break;
-      }
-    });
-
-    this.terminal.on('kill', () => {
-      this.kill();
-    });
-
-    this.terminal.on('debug', () => {
-      for (const browser of this.browsers) {
-        browser.openDebugPage();
+      if (session.status === STATUS_FINISHED) {
+        this.onSessionFinished(session);
       }
     });
   }
@@ -92,27 +76,20 @@ export class TestRunner {
         this.sessions.add(session);
       }
 
-      this.terminal.start(this.serverAddress, !!this.config.watch);
-
       await this.config.server.start({
         config: this.config,
         sessions: this.sessions,
+        runner: this,
         testFiles: this.testFiles,
-        onRerunSessions: this.onRerunSessions,
       });
-
-      this.updateTestProgressIntervalId = setInterval(() => {
-        this.updateTestProgress();
-      }, 500);
-      this.updateTestProgress();
 
       this.runTests(this.sessions.all());
     } catch (error) {
-      this.kill(error);
+      this.quit(error);
     }
   }
 
-  private async runTests(sessions: Iterable<TestSession>) {
+  async runTests(sessions: Iterable<TestSession>) {
     if (this.stopped) {
       return;
     }
@@ -126,15 +103,9 @@ export class TestRunner {
       this.testRun += 1;
 
       await this.scheduler.schedule(this.testRun, sessions);
-      this.reporter.reportTestRunStart(
-        this.testRun,
-        this.testFiles,
-        this.browserNames,
-        this.favoriteBrowser!,
-        this.serverAddress
-      );
+      this.emit('test-run-started', { testRun: this.testRun, sessions });
     } catch (error) {
-      this.kill(error);
+      this.quit(error);
     }
   }
 
@@ -142,12 +113,9 @@ export class TestRunner {
     if (this.stopped) {
       return;
     }
-    this.stopped = true;
-    if (this.updateTestProgressIntervalId != null) {
-      clearInterval(this.updateTestProgressIntervalId);
-    }
-    this.reporter?.reportEnd();
+    this.emit('quit');
 
+    this.stopped = true;
     const tasks: Promise<any>[] = [];
     tasks.push(
       this.config.server.stop().catch((error) => {
@@ -165,7 +133,13 @@ export class TestRunner {
     await Promise.all(tasks);
   }
 
-  async kill(error?: any) {
+  openDebugPage() {
+    for (const browser of this.browsers) {
+      browser.openDebugPage();
+    }
+  }
+
+  async quit(error?: any) {
     if (error instanceof Error) {
       console.error('Error while running tests:');
       console.error(error);
@@ -176,22 +150,6 @@ export class TestRunner {
     process.exit(1);
   }
 
-  private onRerunSessions = (sessionIds: string[]) => {
-    try {
-      const sessions = sessionIds.map((id) => {
-        const session = this.sessions.get(id);
-        if (!session) {
-          throw new Error(`Unknown session ${id}.`);
-        }
-        return session;
-      });
-
-      this.runTests(sessions);
-    } catch (error) {
-      this.kill(error);
-    }
-  };
-
   private async onSessionFinished(session: TestSession) {
     try {
       // TODO: find correct browser for session
@@ -200,31 +158,24 @@ export class TestRunner {
       }
 
       this.scheduler.runScheduled(this.testRun).catch((error) => {
-        this.kill(error);
+        this.quit(error);
       });
-
-      this.reporter.reportTestFileResults(
-        this.testRun,
-        session.testFile,
-        this.browserNames,
-        this.favoriteBrowser!,
-        this.serverAddress
-      );
 
       const finishedAll = Array.from(this.sessions.all()).every(
         (s) => s.status === STATUS_FINISHED
       );
       if (finishedAll) {
         let passedCoverage = true;
+        let testCoverage: TestCoverage | undefined = undefined;
         if (this.config.coverage) {
           const coverageThreshold =
             typeof this.config.coverage === 'object' ? this.config.coverage.threshold : undefined;
 
-          const cov = getCoverageSummary(this.sessions.all(), coverageThreshold);
-          passedCoverage = cov.passed;
-
-          this.reporter.reportTestCoverage(cov.coverageData, passedCoverage, coverageThreshold);
+          testCoverage = getTestCoverage(this.sessions.all(), coverageThreshold);
+          passedCoverage = testCoverage.passed;
         }
+
+        this.emit('test-run-finished', { testRun: this.testRun, testCoverage });
 
         if (!this.config.watch) {
           setTimeout(async () => {
@@ -235,24 +186,8 @@ export class TestRunner {
           });
         }
       }
-
-      this.updateTestProgress();
     } catch (error) {
-      this.kill(error);
-    }
-  }
-
-  private updateTestProgress() {
-    try {
-      this.reporter.reportTestProgress(this.config, {
-        browserNames: this.browserNames,
-        testRun: this.testRun,
-        testFiles: this.testFiles,
-        sessions: this.sessions,
-        startTime: this.startTime,
-      });
-    } catch (error) {
-      this.kill(error);
+      this.quit(error);
     }
   }
 }

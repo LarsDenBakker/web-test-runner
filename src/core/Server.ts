@@ -1,12 +1,12 @@
 import { TestRunnerConfig } from './TestRunnerConfig.js';
-import { TestSessionResult } from './TestSessionResult';
 import { TestSessionManager } from './TestSessionManager.js';
+import { TestRunner } from './TestRunner.js';
 
 export interface ServerStartArgs {
   config: TestRunnerConfig;
   sessions: TestSessionManager;
+  runner: TestRunner;
   testFiles: string[];
-  onRerunSessions: (sessionIds: string[]) => void;
 }
 
 export interface Server {

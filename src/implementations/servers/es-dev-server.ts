@@ -15,18 +15,27 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
   let server: net.Server;
 
   return {
-    async start({ config, testFiles, sessions, onRerunSessions: originalOnRerunSessions }) {
+    async start({ config, testFiles, sessions, runner }) {
       const request404sPerSession = new Map<string, Set<string>>();
       const testFrameworkImport = process.env.LOCAL_TESTING
         ? config.testFrameworkImport.replace('web-test-runner', '.')
         : config.testFrameworkImport;
 
-      function onRerunSessions(sessionIds: string[]) {
+        function onRerunSessions(sessionIds: string[]) {
         for (const id of sessionIds) {
           // clear stored 404s on reload
           request404sPerSession.delete(id);
         }
-        originalOnRerunSessions(sessionIds);
+
+        const sessionsToRerun = sessionIds.map((id) => {
+          const session = sessions.get(id);
+          if (!session) {
+            throw new Error(`Could not find session ${id}`);
+          }
+          return session;
+        });
+
+        runner.runTests(sessionsToRerun);
       }
 
       function onRequest404(sessionId: string, url: string) {
