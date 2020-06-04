@@ -40,6 +40,7 @@ export class TestScheduler extends EventEmitter {
       if (done || !value) {
         break;
       }
+
       scheduleTasks.push(this.runSession(testRun, value));
     }
 

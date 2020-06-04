@@ -37,10 +37,5 @@ export function getTestFileReport(
     entries.unshift(`${chalk.bold(chalk.cyanBright(testFile))}:`);
   }
 
-  // trim off a trailing empty line used for padding between errors
-  if (entries[entries.length - 1] === '') {
-    entries.splice(entries.length - 1);
-  }
-
   return entries;
 }

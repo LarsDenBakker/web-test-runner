@@ -88,7 +88,7 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
       return Array.from(drivers.keys());
     },
 
-    openDebugPage() {
+    startDebugSession() {
       throw new Error('Not supported');
     },
 

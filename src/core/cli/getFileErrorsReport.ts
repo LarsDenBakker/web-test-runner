@@ -26,6 +26,7 @@ export function getFileErrorsReport(
 
     entries.push({ text: `❌ Failed to run test file${failedOn}`, indent: 1 });
     entries.push({ text: renderError(failedImport.error, serverAddress), indent: 6 });
+    entries.push('');
   }
   const testErrorsPerBrowser = new Map<string, Map<string, TestResultError>>();
 

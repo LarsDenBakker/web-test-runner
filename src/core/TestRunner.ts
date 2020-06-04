@@ -1,11 +1,11 @@
 import { TestSession } from './TestSession';
 import { TestRunnerConfig } from './TestRunnerConfig';
-import { createTestSessions, EventEmitter } from './utils';
+import { createTestSessions, EventEmitter, filtered } from './utils';
 import { BrowserLauncher } from './BrowserLauncher';
 import { getTestCoverage, TestCoverage } from './getTestCoverage';
 import { TestScheduler } from './TestSessionScheduler';
 import { TestSessionManager } from './TestSessionManager';
-import { STATUS_STARTED, STATUS_FINISHED } from './TestSessionStatus';
+import { STATUS_FINISHED } from './TestSessionStatus';
 
 interface EventMap {
   'test-run-started': { testRun: number; sessions: Iterable<TestSession> };
@@ -23,6 +23,7 @@ export class TestRunner extends EventEmitter<EventMap> {
   public testRun = -1;
   public started = false;
   public stopped = false;
+  public focusedTestFile: string | undefined;
 
   private browsers: BrowserLauncher[];
   private scheduler: TestScheduler;
@@ -94,6 +95,13 @@ export class TestRunner extends EventEmitter<EventMap> {
       return;
     }
 
+    const sessionsToRun = this.focusedTestFile
+      ? Array.from(sessions).filter((f) => f.testFile === this.focusedTestFile)
+      : Array.from(sessions);
+    if (sessionsToRun.length === 0) {
+      return;
+    }
+
     if (this.browsers.length > 1) {
       // TODO: only pass sessions to browsers associated with it
       throw new Error('Multiple browsers are not yet supported');
@@ -102,8 +110,8 @@ export class TestRunner extends EventEmitter<EventMap> {
     try {
       this.testRun += 1;
 
-      await this.scheduler.schedule(this.testRun, sessions);
-      this.emit('test-run-started', { testRun: this.testRun, sessions });
+      await this.scheduler.schedule(this.testRun, sessionsToRun);
+      this.emit('test-run-started', { testRun: this.testRun, sessions: sessionsToRun });
     } catch (error) {
       this.quit(error);
     }
@@ -133,9 +141,14 @@ export class TestRunner extends EventEmitter<EventMap> {
     await Promise.all(tasks);
   }
 
-  openDebugPage() {
-    for (const browser of this.browsers) {
-      browser.openDebugPage();
+  startDebugFocusedTestFile() {
+    if (!this.focusedTestFile) {
+      throw new Error('Cannot debug without a focused test file.');
+    }
+
+    for (const session of this.sessions.forTestFile(this.focusedTestFile)) {
+      // TODO: select browser for session
+      this.browsers[0].startDebugSession(session);
     }
   }
 

@@ -15,6 +15,7 @@ export interface TestProgressArgs {
   testRun: number;
   sessions: TestSessionManager;
   startTime: number;
+  focusedTestFile?: string;
 }
 
 const fullProgress = '█';
@@ -80,11 +81,24 @@ function getProgressReport(
 }
 
 export function getTestProgressReport(config: TestRunnerConfig, args: TestProgressArgs) {
-  const { browserNames, testRun, testFiles, sessions, startTime } = args;
+  const {
+    browserNames,
+    testRun,
+    testFiles: allTestFiles,
+    sessions,
+    startTime,
+    focusedTestFile,
+  } = args;
+  const testFiles = focusedTestFile ? [focusedTestFile] : allTestFiles;
 
   const entries: TerminalEntry[] = [];
   const unfinishedSessions = Array.from(
-    sessions.forStatus(STATUS_SCHEDULED, STATUS_INITIALIZING, STATUS_STARTED)
+    sessions.forStatusAndTestFile(
+      focusedTestFile,
+      STATUS_SCHEDULED,
+      STATUS_INITIALIZING,
+      STATUS_STARTED
+    )
   );
 
   const passedTests = new Set<string>();
@@ -94,7 +108,7 @@ export function getTestProgressReport(config: TestRunnerConfig, args: TestProgre
 
   const minWidth = browserNames.sort((a, b) => b.length - a.length)[0].length + 1;
   for (const browser of browserNames) {
-    const sessionsForBrowser = sessions.forBrowser(browser);
+    const sessionsForBrowser = sessions.forBrowserAndTestFile(focusedTestFile, browser);
     let finishedFilesForBrowser = 0;
     let passedTestsForBrowser = 0;
     let failedTestsForBrowser = 0;
@@ -148,13 +162,12 @@ export function getTestProgressReport(config: TestRunnerConfig, args: TestProgre
     entries.push(...browserProgressEntries);
   }
 
-  const durationInSec = (Date.now() - startTime) / 1000;
-
   entries.push('');
   if (testRun !== -1 && unfinishedSessions.length === 0) {
     if (config.watch) {
       entries.push(chalk.bold(`Finished running tests, watching for file changes...`));
     } else {
+      const durationInSec = (Date.now() - startTime) / 1000;
       const duration = Math.trunc(durationInSec * 10) / 10;
 
       if (failedTests.size > 0) {
@@ -168,10 +181,10 @@ export function getTestProgressReport(config: TestRunnerConfig, args: TestProgre
       }
     }
   } else {
-    entries.push(
-      chalk.bold(`Running tests... ${config.watch ? '' : `(${Math.floor(durationInSec)}s)`}`)
-    );
+    entries.push(chalk.bold('Running tests...'));
   }
+
+  entries.push('');
 
   return entries;
 }

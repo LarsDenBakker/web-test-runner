@@ -8,7 +8,6 @@ import { Server } from '../../core/Server';
 import { RuntimeConfig, BrowserTestSessionResult } from '../../core/runtime/types';
 import { dependencyGraphMiddleware } from './dependencyGraphMiddleware';
 import { createTestPage } from './createTestPage';
-import { createDebugPage } from './createDebugPage';
 import { STATUS_FINISHED, STATUS_STARTED } from '../../core/TestSessionStatus';
 
 export function createEsDevServer(devServerConfig: object = {}): Server {
@@ -21,7 +20,7 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
         ? config.testFrameworkImport.replace('web-test-runner', '.')
         : config.testFrameworkImport;
 
-        function onRerunSessions(sessionIds: string[]) {
+      function onRerunSessions(sessionIds: string[]) {
         for (const id of sessionIds) {
           // clear stored 404s on reload
           request404sPerSession.delete(id);
@@ -53,7 +52,6 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
           {
             port: config.port,
             nodeResolve: true,
-            debug: false,
             logStartup: false,
             logCompileErrors: false,
             babelConfig: config.coverage
@@ -132,13 +130,6 @@ export function createEsDevServer(devServerConfig: object = {}): Server {
                       body: config.testRunnerHtml
                         ? config.testRunnerHtml(config)
                         : createTestPage(context, testFrameworkImport),
-                    };
-                  }
-
-                  if (context.path === '/debug/') {
-                    return {
-                      type: 'html',
-                      body: createDebugPage(sessions),
                     };
                   }
                 },

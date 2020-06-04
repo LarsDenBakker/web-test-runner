@@ -61,12 +61,24 @@ export class TestSessionManager extends EventEmitter<EventMap> {
     return this.filtered((s) => statuses.includes(s.status));
   }
 
+  forStatusAndTestFile(testFile?: string, ...statuses: TestSessionStatus[]) {
+    return this.filtered(
+      (s) => statuses.includes(s.status) && (!testFile || s.testFile === testFile)
+    );
+  }
+
   forTestFile(...testFiles: string[]) {
     return this.filtered((s) => testFiles.includes(s.testFile));
   }
 
   forBrowser(...browserNames: string[]) {
     return this.filtered((s) => browserNames.includes(s.browserName));
+  }
+
+  forBrowserAndTestFile(testFile?: string, ...browserNames: string[]) {
+    return this.filtered(
+      (s) => browserNames.includes(s.browserName) && (!testFile || s.testFile === testFile)
+    );
   }
 
   passed() {

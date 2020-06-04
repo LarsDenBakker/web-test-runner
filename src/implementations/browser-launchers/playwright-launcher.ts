@@ -1,7 +1,8 @@
 import playwright, { Browser, Page, LaunchOptions } from 'playwright';
 import { BrowserLauncher } from '../../core/BrowserLauncher';
 import { TestRunnerConfig } from '../../core/TestRunnerConfig';
-import { PARAM_SESSION_ID } from '../../core/constants';
+import { PARAM_SESSION_ID, PARAM_DEBUG } from '../../core/constants';
+import { TestSession } from '../../core/TestSession';
 
 export type BrowserType = 'chromium' | 'firefox' | 'webkit';
 
@@ -15,9 +16,10 @@ export function playwrightLauncher({
   browserTypes = ['chromium'],
 }: Partial<PlaywrightLauncherConfig> = {}): BrowserLauncher {
   const browsers = new Map<string, Browser>();
+  const debugBrowsers = new Map<string, Browser>();
   const activePages = new Map<String, Page>();
+  const createUrl = (session: TestSession) => `${serverAddress}?${PARAM_SESSION_ID}=${session.id}`;
   const inactivePages: Page[] = [];
-  let debugBrowsers: Browser[] = [];
 
   if (browserTypes.some((t) => !validBrowserTypes.includes(t))) {
     throw new Error(
@@ -48,26 +50,26 @@ export function playwrightLauncher({
       for (const browser of browsers.values()) {
         await browser.close();
       }
-      for (const browser of debugBrowsers) {
+      for (const browser of debugBrowsers.values()) {
         await browser.close();
       }
     },
 
-    async openDebugPage() {
-      for (const b of debugBrowsers) {
-        if (b.isConnected()) {
-          await b.close();
-        }
+    async startDebugSession(session) {
+      const browserType = session.browserName.toLowerCase() as BrowserType;
+      if (!validBrowserTypes.includes(browserType)) {
+        throw new Error(`Invalid browser type: ${browserType}`);
       }
 
-      debugBrowsers = [];
-
-      for (const type of browserTypes) {
-        const browser = await playwright[type].launch({ headless: false });
-        debugBrowsers.push(browser);
-        const page = await browser.newPage();
-        await page.goto(`${serverAddress}debug/`);
+      let browser = debugBrowsers.get(browserType);
+      if (browser && browser.isConnected()) {
+        await browser.close();
       }
+      browser = await playwright[browserType].launch({ headless: false });
+      debugBrowsers.set(browserType, browser);
+
+      const page = await browser.newPage();
+      await page.goto(`${createUrl(session)}&${PARAM_DEBUG}=true`);
     },
 
     async startSession(session) {
@@ -87,7 +89,7 @@ export function playwrightLauncher({
       }
 
       activePages.set(session.id, page);
-      await page.goto(`${serverAddress}?${PARAM_SESSION_ID}=${session.id}`);
+      await page.goto(createUrl(session));
     },
 
     stopSession(session) {

@@ -1,7 +1,8 @@
 import { Browser, launch, Page } from 'puppeteer';
 import { BrowserLauncher } from '../../core/BrowserLauncher';
-import { PARAM_SESSION_ID } from '../../core/constants';
+import { PARAM_SESSION_ID, PARAM_DEBUG } from '../../core/constants';
 import { TestRunnerConfig } from '../../core/TestRunnerConfig';
+import { TestSession } from '../../core/TestSession';
 
 export interface PuppeteerLauncherConfig {
   args: string[];
@@ -16,6 +17,8 @@ export function puppeteerLauncher({
   let serverAddress: string;
   let browser: Browser;
   let debugBrowser: undefined | Browser = undefined;
+
+  const createUrl = (session: TestSession) => `${serverAddress}?${PARAM_SESSION_ID}=${session.id}`;
 
   return {
     async start(_config) {
@@ -35,13 +38,13 @@ export function puppeteerLauncher({
       }
     },
 
-    async openDebugPage() {
+    async startDebugSession(session) {
       if (debugBrowser?.isConnected()) {
         await debugBrowser.close();
       }
       debugBrowser = await launch({ args, devtools: true });
       const page = await debugBrowser.newPage();
-      await page.goto(`${serverAddress}debug/`);
+      await page.goto(`${createUrl(session)}&${PARAM_DEBUG}=true`);
     },
 
     async startSession(session) {
@@ -57,7 +60,7 @@ export function puppeteerLauncher({
       }
 
       activePages.set(session.id, page);
-      await page.goto(`${serverAddress}?${PARAM_SESSION_ID}=${session.id}`);
+      await page.goto(createUrl(session));
     },
 
     stopSession(session) {

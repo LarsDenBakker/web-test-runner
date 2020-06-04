@@ -1,4 +1,5 @@
 import logUpdate from 'log-update';
+import cliCursor from 'cli-cursor';
 import { EventEmitter } from '../utils';
 
 const CLEAR_COMMAND = process.platform === 'win32' ? '\x1B[2J\x1B[0f' : '\x1B[2J\x1B[3J\x1B[H';
@@ -10,24 +11,12 @@ export interface IndentedTerminalEntry {
   indent: number;
 }
 
-const KEYCODES = {
-  ENTER: '\r',
-  ESCAPE: '\u001b',
-  CTRL_C: '\u0003',
-  CTRL_D: '\u0004',
-};
-
 interface EventMap {
-  quit: undefined;
-  debug: undefined;
-  'enter-focus': undefined;
-  'exit-focus': undefined;
-  'rerun-all': undefined;
-  'focus-file': number;
+  input: string;
 }
 
 function buildLogString(entries: TerminalEntry[], serverAddress: RegExp) {
-  let str = '';
+  const strings: string[] = [];
 
   for (const entry of entries) {
     let stringsToAdd: string[];
@@ -41,12 +30,12 @@ function buildLogString(entries: TerminalEntry[], serverAddress: RegExp) {
       indent = entry.indent;
     }
 
-    for (const string of stringsToAdd) {
-      str += `${' '.repeat(indent)}${string.replace(serverAddress, '')}\n`;
-    }
+    strings.push(
+      ...stringsToAdd.map((str) => `${' '.repeat(indent)}${str.replace(serverAddress, '')}`)
+    );
   }
 
-  return str;
+  return strings.join('\n');
 }
 
 export class Terminal extends EventEmitter<EventMap> {
@@ -86,43 +75,22 @@ export class Terminal extends EventEmitter<EventMap> {
       }
     }
 
-    if (watchMode) {
-      process.stdin.setRawMode(true);
-      process.stdin.resume();
-      process.stdin.setEncoding('utf8');
-      process.stdin.on('data', (key: string) => {
-        const nr = Number(key);
-        if (!Number.isNaN(nr)) {
-          this.emit('focus-file', nr);
-          return;
-        }
-
-        switch (key.toUpperCase()) {
-          case KEYCODES.CTRL_C:
-          case KEYCODES.CTRL_D:
-          case 'Q':
-            process.stdin.setRawMode(false);
-            this.emit('quit', undefined);
-            return;
-          case 'D':
-            this.emit('debug', undefined);
-            return;
-          case 'F':
-            this.emit('enter-focus', undefined);
-            return;
-          case KEYCODES.ESCAPE:
-            this.emit('exit-focus', undefined);
-            return;
-          case KEYCODES.ENTER:
-            this.emit('rerun-all', undefined);
-            return;
-          default:
-            return;
-        }
-      });
-    }
-
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+    process.stdin.on('data', (input: string) => {
+      this.emit('input', input);
+    });
     this.started = true;
+  }
+
+  observeDirectInput() {
+    process.stdin.setRawMode(true);
+    cliCursor.hide();
+  }
+
+  observeConfirmedInput() {
+    process.stdin.setRawMode(false);
+    cliCursor.show();
   }
 
   stop() {
@@ -136,11 +104,7 @@ export class Terminal extends EventEmitter<EventMap> {
 
   clear() {
     process.stdout.write(CLEAR_COMMAND);
-  }
-
-  restart() {
     this.relogDynamic();
-    this.clear();
   }
 
   logStatic(entriesOrEntry: TerminalEntry | TerminalEntry[]) {
@@ -148,7 +112,12 @@ export class Terminal extends EventEmitter<EventMap> {
     if (entries.length === 0) {
       return;
     }
+
     console.log(buildLogString(entries, this.serverAddress!));
+  }
+
+  logPendingUserInput(string: string) {
+    process.stdout.write(string);
   }
 
   logDynamic(entriesOrEntry: TerminalEntry | TerminalEntry[]) {
