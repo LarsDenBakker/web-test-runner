@@ -38,6 +38,10 @@ export class TestRunnerCli {
   constructor(private config: TestRunnerConfig, private runner: TestRunner) {
     this.sessions = runner.sessions;
     this.serverAddress = `${config.address}:${config.port}/`;
+
+    if (config.watch && !this.terminal.isInteractive) {
+      this.runner.quit(new Error('Cannot run watch mode in a non-interactive (TTY) terminal.'));
+    }
   }
 
   start() {
@@ -252,7 +256,12 @@ export class TestRunnerCli {
     this.terminal.observeConfirmedInput();
   }
 
-  private logTestProgress() {
+  private logTestProgress(final = false) {
+    const logStatic = this.config.staticLogging || !this.terminal.isInteractive;
+    if (logStatic && !final) {
+      return;
+    }
+
     const entries: TerminalEntry[] = [];
     entries.push(
       ...getTestProgressReport(this.config, {
@@ -273,10 +282,15 @@ export class TestRunnerCli {
       entries.push(...getWatchCommands(this.activeMenu, this.runner.focusedTestFile), '');
     }
 
-    this.terminal.logDynamic(entries);
+    if (logStatic) {
+      this.terminal.logStatic(entries);
+    } else {
+      this.terminal.logDynamic(entries);
+    }
   }
 
   private reportEnd() {
+    this.logTestProgress(true);
     this.terminal.stop();
   }
 }

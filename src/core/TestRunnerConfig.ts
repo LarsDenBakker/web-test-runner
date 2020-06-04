@@ -28,4 +28,5 @@ export interface TestRunnerConfig {
   browserStartTimeout?: number;
   sessionStartTimeout?: number;
   sessionFinishTimeout?: number;
+  staticLogging?: boolean;
 }

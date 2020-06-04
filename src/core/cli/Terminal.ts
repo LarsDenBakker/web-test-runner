@@ -43,6 +43,7 @@ export class Terminal extends EventEmitter<EventMap> {
   private previousDynamic: TerminalEntry[] = [];
   private started = false;
   private serverAddress?: RegExp;
+  public isInteractive = process.stdout.isTTY;
 
   start(serverAddress: string, watchMode: boolean) {
     this.serverAddress = new RegExp(serverAddress, 'g');
@@ -84,12 +85,24 @@ export class Terminal extends EventEmitter<EventMap> {
   }
 
   observeDirectInput() {
-    process.stdin.setRawMode(true);
+    if (!this.isInteractive) {
+      throw new Error('Cannot observe input in a non-interactive (TTY) terminal.');
+    }
+
+    if (typeof process.stdin.setRawMode === 'function') {
+      process.stdin.setRawMode(true);
+    }
     cliCursor.hide();
   }
 
   observeConfirmedInput() {
-    process.stdin.setRawMode(false);
+    if (!this.isInteractive) {
+      throw new Error('Cannot observe input in a non-interactive (TTY) terminal.');
+    }
+
+    if (typeof process.stdin.setRawMode === 'function') {
+      process.stdin.setRawMode(false);
+    }
     cliCursor.show();
   }
 

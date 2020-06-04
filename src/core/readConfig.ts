@@ -32,6 +32,10 @@ const commandLineOptions = [
     name: 'test-isolation',
     type: Boolean,
   },
+  {
+    name: 'static-logging',
+    type: Boolean,
+  },
 ];
 
 const defaultCoverageConfig: CoverageConfig = {
@@ -78,6 +82,9 @@ export async function readConfig() {
   }
   if ('concurrency' in args) {
     config.concurrency = args.concurrency;
+  }
+  if ('static-logging' in args) {
+    config.staticLogging = !!args['static-logging'];
   }
 
   if (!config.files) {
