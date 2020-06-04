@@ -89,7 +89,7 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
     },
 
     startDebugSession() {
-      throw new Error('Not supported');
+      throw new Error('Debug is not supported in browserstack.');
     },
 
     async stop() {
