@@ -110,7 +110,7 @@ export function browserstackLauncher(args: BrowserstackLauncherConfig): BrowserL
         throw new Error(`Unknown browser ${session.browserName}`);
       }
 
-      driver.executeScript(`window.open('${serverAddress}?${PARAM_SESSION_ID}=${session.id}')`);
+      await driver.executeScript(`window.open('${serverAddress}?${PARAM_SESSION_ID}=${session.id}')`);
     },
 
     stopSession(session) {
