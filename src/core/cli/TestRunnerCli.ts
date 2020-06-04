@@ -55,6 +55,10 @@ export class TestRunnerCli {
     this.logTestResults();
     this.logTestProgress();
     this.terminal.observeDirectInput();
+
+    if (this.config.staticLogging || !this.terminal.isInteractive) {
+      this.terminal.logStatic(chalk.bold(`Running ${this.runner.testFiles.length} test files...\n`));
+    }
   }
 
   private setupTerminalEvents() {
