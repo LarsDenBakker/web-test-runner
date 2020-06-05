@@ -51,10 +51,10 @@ export class TestRunnerCli {
     this.terminal.start(this.serverAddress, !!this.config.watch);
     if (this.config.watch) {
       this.terminal.clear();
+      this.terminal.observeDirectInput();
     }
     this.logTestResults();
     this.logTestProgress();
-    this.terminal.observeDirectInput();
 
     if (this.config.staticLogging || !this.terminal.isInteractive) {
       this.terminal.logStatic(chalk.bold(`Running ${this.runner.testFiles.length} test files...\n`));
@@ -223,7 +223,9 @@ export class TestRunnerCli {
       case MENUS.OVERVIEW:
         this.logTestResults(true);
         this.logTestProgress();
-        this.terminal.observeDirectInput();
+        if (this.config.watch) {
+          this.terminal.observeDirectInput();
+        }
         break;
       case MENUS.FOCUS_SELECT_FILE:
       case MENUS.DEBUG_SELECT_FILE:
