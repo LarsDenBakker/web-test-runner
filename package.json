@@ -1,6 +1,6 @@
 {
   "name": "web-test-runner",
-  "version": "0.0.33",
+  "version": "0.0.34",
   "description": "",
   "main": "dist/core/runtime/web-test-runner.js",
   "scripts": {
