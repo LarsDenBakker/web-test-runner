@@ -1,6 +1,7 @@
 import commandLineArgs from 'command-line-args';
 import fs from 'fs';
 import path from 'path';
+import portfinder from 'portfinder';
 import { puppeteerLauncher } from '../implementations/browser-launchers/puppeteer-launcher';
 import { createEsDevServer } from '../implementations/servers/es-dev-server';
 import { TestRunnerConfig, CoverageConfig } from './TestRunnerConfig';
@@ -55,12 +56,11 @@ export async function readConfig() {
     userConfig = module.default;
   }
 
-  const config: TestRunnerConfig = {
+  const config: Partial<TestRunnerConfig> = {
     files: [],
     watch: false,
     testFrameworkImport: 'web-test-runner/dist/implementations/frameworks/mocha.js',
     address: 'http://localhost',
-    port: 9542,
     concurrency: 10,
     browserStartTimeout: 30000,
     sessionStartTimeout: 10000,
@@ -91,5 +91,10 @@ export async function readConfig() {
     throw new Error('You need to specify which tests to run.');
   }
 
-  return config;
+  if (typeof config.port !== 'number') {
+    const port = 9000 + Math.floor(Math.random() * 1000);
+    config.port = await portfinder.getPortPromise({ port });
+  }
+
+  return config as TestRunnerConfig;
 }
